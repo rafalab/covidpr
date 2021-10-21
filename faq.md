@@ -177,7 +177,7 @@ En el panel de control hay dos cuadros blancos en los cuales pueden escoger cual
 
 <details><summary>¿Puedo ver el código? </summary>
 
-Todo el código está en GitHub: [https://github.com/rafalab/tpr](https://github.com/rafalab/covidpr)
+Todo el código está en GitHub: [https://github.com/rafalab/covidpr](https://github.com/rafalab/covidpr)
 </details>
 
 <details><summary>¿Puedo usar la gráficas creadas por el dashboard? </summary>
