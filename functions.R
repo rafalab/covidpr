@@ -1219,7 +1219,7 @@ summary_by_region <- function(tests_by_region,
   
   p <- dat %>% 
     ggplot(aes(date, the_stat, color = region,  lty = date > last_day)) + 
-    geom_line() +
+    geom_line(lwd = 1.25, alpha = 0.75) +
     guides(linetype = FALSE) +
     xlab("Fecha") +
     ylab(var_title) +
@@ -1455,12 +1455,12 @@ summary_by_age <- function(tests_by_age,
       }
     } else{
       p <- p + 
-        geom_line(aes(lty = date > last_day), show.legend = FALSE) 
+        geom_line(aes(lty = date > last_day), lwd = 1.25, show.legend = FALSE) 
     }
   } else{
     p <- dat %>% 
       ggplot(aes(date, the_stat, color = ageRange,  lty = date > last_day)) + 
-      geom_line() +
+      geom_line(lwd = 1.25, alpha = 0.75) +
       guides(linetype = FALSE) +
       xlab("Fecha") +
       ylab(var_title) +

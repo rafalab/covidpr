@@ -211,10 +211,11 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                DT::dataTableOutput("table_travelers")),
                       
                       # tabPanel("Escuelas",
-                      #          br(),
-                      #          h4("En esta pestaña estáremos publicando datos sobre contagios y exposiciones en las escuelas de Puerto Rico. En colaboración con ",
-                      #             "el Departamento de Salud estamos preparando resúmenes y explicaciones útiles para el público.")),
-                      #          #DT::dataTableOutput("escuelas")),
+                      #          h2("Escuelas con casos activos"),
+                      #          #h4("En esta pestaña estáremos publicando datos sobre contagios y exposiciones en las escuelas de Puerto Rico. En colaboración con ",
+                      #           #  "el Departamento de Salud estamos preparando resúmenes y explicaciones útiles para el público.")),
+                      #          htmlOutput("escuelas_tab"),
+                      #          plotOutput("escuelas_plot")),
                       # 
                       tabPanel("FAQ",
                                includeMarkdown("faq.md"))
@@ -766,60 +767,58 @@ server <- function(input, output, session) {
     contentType = "txt/csv"
   )
   
+  # Escuelas ----------------------------------------------------------------
 
-# Escuelas ----------------------------------------------------------------
-
-  
-  output$escuelas <- DT::renderDataTable({
-    
-    ### Original code written by Mónica Robles
-    
-    data<-httr::GET("https://bioportal.salud.gov.pr/api/administration/reports/education/general-summary",
-                    httr::content_type('application/json'))
-    school_data<-jsonlite::fromJSON(rawToChar(data$content), flatten = T)
-    
-    ## some important definitions as provided by Aníbal López Correa
-    ## this url downloads information from ACTIVE exposed cases
-    ## exposed cases USED to refer to students/employees who recently traveled,
-    # have tested positive to a dx test or have been contacts to cases
-    
-    ## some important limitations
-    ## we do not know if the school enrollments are up to date
-    ## we do not know if the active exposed cases definition has changed (to be discussed)
-    
-    
-    #### exploring active exposed cases per institution type
-    
-    school_data_k <- school_data %>%
-      mutate(totalPeopleExposed = totalEmployeesExposed+totalStudentsExposed) %>%
-      dplyr::select(entityName,
-                    entityType, 
-                    entityMunicipality, 
-                    entityName,
-                    totalPeopleExposed,
-                    totalStudentsExposed, 
-                    totalEmployeesExposed) %>% 
-      arrange(desc(totalPeopleExposed),
-              desc(totalStudentsExposed), 
-              desc(totalEmployeesExposed)) %>%
-      rename("Tipo de institución"=entityType, 
-             "Nombre de institución"=entityName,
-             "Municipio de institución"=entityMunicipality,
-             "Total de empleados expuestos"=totalEmployeesExposed,
-             "Total de estudiantes expuestos"=totalStudentsExposed,
-             "Total de personas expuestas"=totalPeopleExposed)
-    
-    DT::datatable(school_data_k ,   
-                  rownames= FALSE,
-                  caption =  paste0("Una persona expuesta en una institución educativa es aquella que ha estado en contacto directo ",
-                  "con una persona contagiada con SARS-CoV-2 o que ha dado positivo a una prueba diagnóstica de SARS-CoV-2 en los pasados 14 días.",
-                  "\nEn la primera página mostramos las 15 escuelas con mayor número de exposiciones pero pueden usar la utilidad `Search` (arriba a la derecha para encontrar una escuela)",
-                  "o pasar las páginas (ver botón al final de la tabla).",
-                  "\nDisclaimer: Los números pueden variar dependiendo de la actualización de las matrículas escolares y de la entrada de pruebas al BioPortal."),
-                  options = list(pageLength = 15, lengthMenu = list(c(10, 15, 25, 100, -1), c('10', '15', '25', '100', 'All')))) %>%
-                  DT::formatStyle("Nombre de institución", "white-space"="nowrap")
-  
-  }, server = FALSE)
+  # output$escuelas <- DT::renderDataTable({
+  #   
+  #   ### Original code written by Mónica Robles
+  #   
+  #   data<-httr::GET("https://bioportal.salud.gov.pr/api/administration/reports/education/general-summary",
+  #                   httr::content_type('application/json'))
+  #   school_data<-jsonlite::fromJSON(rawToChar(data$content), flatten = T)
+  #   
+  #   ## some important definitions as provided by Aníbal López Correa
+  #   ## this url downloads information from ACTIVE exposed cases
+  #   ## exposed cases USED to refer to students/employees who recently traveled,
+  #   # have tested positive to a dx test or have been contacts to cases
+  #   
+  #   ## some important limitations
+  #   ## we do not know if the school enrollments are up to date
+  #   ## we do not know if the active exposed cases definition has changed (to be discussed)
+  #   
+  #   
+  #   #### exploring active exposed cases per institution type
+  #   
+  #   school_data_k <- school_data %>%
+  #     mutate(totalPeopleExposed = totalEmployeesExposed+totalStudentsExposed) %>%
+  #     dplyr::select(entityName,
+  #                   entityType, 
+  #                   entityMunicipality, 
+  #                   entityName,
+  #                   totalPeopleExposed,
+  #                   totalStudentsExposed, 
+  #                   totalEmployeesExposed) %>% 
+  #     arrange(desc(totalPeopleExposed),
+  #             desc(totalStudentsExposed), 
+  #             desc(totalEmployeesExposed)) %>%
+  #     rename("Tipo de institución"=entityType, 
+  #            "Nombre de institución"=entityName,
+  #            "Municipio de institución"=entityMunicipality,
+  #            "Total de empleados expuestos"=totalEmployeesExposed,
+  #            "Total de estudiantes expuestos"=totalStudentsExposed,
+  #            "Total de personas expuestas"=totalPeopleExposed)
+  #   
+  #   DT::datatable(school_data_k ,   
+  #                 rownames= FALSE,
+  #                 caption =  paste0("Una persona expuesta en una institución educativa es aquella que ha estado en contacto directo ",
+  #                 "con una persona contagiada con SARS-CoV-2 o que ha dado positivo a una prueba diagnóstica de SARS-CoV-2 en los pasados 14 días.",
+  #                 "\nEn la primera página mostramos las 15 escuelas con mayor número de exposiciones pero pueden usar la utilidad `Search` (arriba a la derecha para encontrar una escuela)",
+  #                 "o pasar las páginas (ver botón al final de la tabla).",
+  #                 "\nDisclaimer: Los números pueden variar dependiendo de la actualización de las matrículas escolares y de la entrada de pruebas al BioPortal."),
+  #                 options = list(pageLength = 15, lengthMenu = list(c(10, 15, 25, 100, -1), c('10', '15', '25', '100', 'All')))) %>%
+  #                 DT::formatStyle("Nombre de institución", "white-space"="nowrap")
+  # 
+  # }, server = FALSE)
 }
 
 shinyApp(ui = ui, server = server)
