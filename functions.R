@@ -1026,7 +1026,7 @@ plot_travelers <- function(travelers,
     p <-  tmp %>% rename(value= vaccine, avg = vaccine_week_avg) %>% ggplot(aes(date, value))
   }
     
-  p +
+  p <- p +
     geom_point(alpha = 0.25) +
     geom_line(aes(y = avg), size = 1.5) +
     scale_x_date(date_labels = "%b %d") +
@@ -1034,8 +1034,13 @@ plot_travelers <- function(travelers,
     ylab(ylab) +
     xlab("Fecha") +
     ggtitle(the_title) +
-    scale_y_continuous(labels = scales::percent, limits = ylim) +
     theme_bw() 
+  if(version == "totals"){
+    p <- p + scale_y_continuous(labels = scales::comma, limits = ylim)
+  } else{
+    p <- p + scale_y_continuous(labels = scales::percent, limits = ylim)
+  }
+  return(p)
 }
 
 
