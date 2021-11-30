@@ -434,8 +434,12 @@ plot_map <- function(tests_by_strata,
                      start_date = first_day, 
                      end_date = last_complete_day, 
                      type = "Molecular",
-                     min_rate = 0.03,
-                     max_rate = 0.12){
+                     min_rate = case_when(type == "Molecular" ~ 0.03, 
+                                          type == "Molecular+Antigens" ~ 0.01,
+                                          TRUE ~ 0.005),
+                     max_rate = case_when(type == "Molecular" ~ 0.12, 
+                                          type == "Molecular+Antigens" ~ 0.10,
+                                          TRUE ~ 0.08)){
     
   load("data/map.rda")
   ret <- tests_by_strata %>%
@@ -691,6 +695,8 @@ make_municipio_table <- function(tests_by_strata,
              ppc = round(positives/poblacion * 100000 / ndays, 1)) %>%
       arrange(desc(rate)) %>%
       mutate(rate = make_pretty_ci(rate, lower, upper),
+             positives = make_pretty(positives),
+             tests = make_pretty(tests),
              poblacion_text = make_pretty(poblacion))%>%
       select(patientCity, rate, positives, tests, ppc, poblacion_text, `0 to 9`, `10 to 19`, poblacion) %>%
       setNames(c("Municipio", "% Pruebas positivas (IC)", "Positivos", "Pruebas",  
