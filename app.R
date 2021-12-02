@@ -192,8 +192,9 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                               style = button_style),
                                DT::dataTableOutput("labs")),
                       
-                      tabPanel("Vacunas",  
-                             
+                      tabPanel("Vacunas", 
+                              HTML('<br><h4>Para más información visite el dashboard de vacunas:  
+                                   <a href="http://vacunas.covidpr.info/">http://vacunas.covidpr.info/</a></h4><hr>'),
                                plotOutput("vaccines"),
                                DT::dataTableOutput("vaccines_table")),
                       
