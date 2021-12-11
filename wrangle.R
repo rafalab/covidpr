@@ -407,16 +407,27 @@ old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/ma
 
 httr::set_config(httr::config(ssl_verifypeer = 0L, ssl_verifyhost = 0L))
 url <- "https://covid19datos.salud.gov.pr/estadisticas_v2/download/data/sistemas_salud/completo"
-hosp_mort <- read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
-  mutate(date = as_date(FE_REPORTE)) %>%
-  filter(date >= first_day) %>%
-  full_join(old_hosp_mort, by = "date") %>%
-  arrange(date) %>%
-  ## add columns to match old table
-  mutate(HospitCOV19 = ifelse(is.na(CAMAS_ADULTOS_COVID), HospitCOV19, CAMAS_ADULTOS_COVID),
-         CamasICU = ifelse(is.na(CAMAS_ICU_COVID), CamasICU, CAMAS_ICU_COVID),
-         CamasICU_disp = ifelse(is.na(CAMAS_ICU_DISP), CamasICU_disp, CAMAS_ICU_DISP))
-         
+hosp_mort <- try({
+  read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
+    mutate(date = as_date(FE_REPORTE)) %>%
+    filter(date >= first_day) %>%
+    full_join(old_hosp_mort, by = "date") %>%
+    arrange(date) %>%
+    ## add columns to match old table
+    mutate(HospitCOV19 = ifelse(is.na(CAMAS_ADULTOS_COVID), HospitCOV19, CAMAS_ADULTOS_COVID),
+           CamasICU = ifelse(is.na(CAMAS_ICU_COVID), CamasICU, CAMAS_ICU_COVID),
+           CamasICU_disp = ifelse(is.na(CAMAS_ICU_DISP), CamasICU_disp, CAMAS_ICU_DISP))
+})
+if(class(hosp_mort)[1] == "try-error"){
+  load(file.path(rda_path, "hosp_mort.rda"))
+  hosp_mort <- full_join(hosp_mort, old_hosp_mort, by = "date") %>%
+    arrange(date) %>%
+    mutate(HospitCOV19 = ifelse(is.na(HospitCOV19.x), HospitCOV19.y, HospitCOV19.x),
+           CamasICU = ifelse(is.na(CamasICU.x), CamasICU.y, CamasICU.x),
+           CamasICU_disp = ifelse(is.na(CamasICU_disp.x), CamasICU_disp.y, CamasICU_disp.x)) %>%
+    select(-contains(".x"), -contains(".y"))
+  
+}
 # -- seven day averages 
 # deaths gets added later
 # fits <- with(hosp_mort, 
@@ -442,7 +453,6 @@ fits <- with(hosp_mort[ind,],
              ma7(d = date, y = CAMAS_PICU_COVID))
 hosp_mort$picu_week_avg <- rep(NA, nrow(hosp_mort))
 hosp_mort$picu_week_avg[ind] <- fits$moving_avg
-
 
 
 ## Vaccine data
@@ -995,6 +1005,9 @@ save(first_day, last_complete_day,
      tests, cases,
      hosp_mort, labs, pr_pop, 
      file = file.path(rda_path, "data.rda"))
+
+## save this as backup in case salud dashboard down
+save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
 save(labs, file = file.path(rda_path, "labs.rda"))
 
