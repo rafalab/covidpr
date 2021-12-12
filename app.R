@@ -263,7 +263,7 @@ server <- function(input, output, session) {
   
   ## get date and time of latest update
   output$stamp = renderUI({
-    HTML(paste("Actualización:<br>", the_stamp)) 
+    HTML(paste("Actualización:<br>", format(the_stamp,  usetz = TRUE))) 
   })
   
 
@@ -728,7 +728,7 @@ server <- function(input, output, session) {
   
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste0(input$dataset, "-", format(the_stamp, "%Y-%m-%d_%H:%M:%S AST"),".csv")
+      paste0(input$dataset, "-", format(the_stamp, "%Y-%m-%d_%H:%M:%S"),".csv")
     },
     content = function(file) {
       write.csv(datasetInput(), file = file, row.names = FALSE)  
