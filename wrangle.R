@@ -418,6 +418,7 @@ hosp_mort <- try({
            CamasICU = ifelse(is.na(CAMAS_ICU_COVID), CamasICU, CAMAS_ICU_COVID),
            CamasICU_disp = ifelse(is.na(CAMAS_ICU_DISP), CamasICU_disp, CAMAS_ICU_DISP))
 })
+
 if(class(hosp_mort)[1] == "try-error"){
   load(file.path(rda_path, "hosp_mort.rda"))
   hosp_mort <- full_join(hosp_mort, old_hosp_mort, by = "date") %>%
@@ -426,7 +427,6 @@ if(class(hosp_mort)[1] == "try-error"){
            CamasICU = ifelse(is.na(CamasICU.x), CamasICU.y, CamasICU.x),
            CamasICU_disp = ifelse(is.na(CamasICU_disp.x), CamasICU_disp.y, CamasICU_disp.x)) %>%
     select(-contains(".x"), -contains(".y"))
-  
 }
 # -- seven day averages 
 # deaths gets added later
@@ -999,7 +999,7 @@ if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
   rda_path <- "rdas"
 }
 ## define date and time of latest download
-the_stamp <- now()
+the_stamp <- now(tzone="America/Puerto_Rico")
 save(first_day, last_complete_day,
      alpha, the_stamp, 
      tests, cases,
