@@ -728,7 +728,7 @@ server <- function(input, output, session) {
   
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste0(input$dataset, "-", format(the_stamp, "%Y-%m-%d_%H:%M:%S"),".csv")
+      paste0(input$dataset, "-", format(the_stamp, "%Y-%m-%d_%H:%M:%S AST"),".csv")
     },
     content = function(file) {
       write.csv(datasetInput(), file = file, row.names = FALSE)  
