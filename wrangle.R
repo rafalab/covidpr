@@ -47,7 +47,6 @@ library(splines)
 #   return(tibble(date = d, fit = fit, lower = lower, upper = upper))  
 # }
 
-
 ## if on server, save with full path
 ## if not on server, save to home directory
 if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
@@ -431,6 +430,15 @@ hosp_mort <- try({
 
 if(class(hosp_mort)[1] == "try-error"){
   load(file.path(rda_path, "hosp_mort.rda"))
+  hosp_mort <- hosp_mort %>% 
+    select(date, FE_REPORTE, CAMAS_ADULTOS_COVID, CAMAS_ADULTOS_NOCOVID, CAMAS_ADULTOS_OCC, 
+           CAMAS_ADULTOS_DISP, CAMAS_ADULTOS_TOTAL, CAMAS_ICU_COVID, CAMAS_ICU_NOCOVID, CAMAS_ICU_OCC, 
+           CAMAS_ICU_DISP, CAMAS_ICU_TOTAL, CAMAS_PED_COVID, CAMAS_PED_NOCOVID, CAMAS_PED_OCC, 
+           CAMAS_PED_DISP, CAMAS_PED_TOTAL, CAMAS_PICU_COVID, CAMAS_PICU_NOCOVID, CAMAS_PICU_OCC, 
+           CAMAS_PICU_DISP, CAMAS_PICU_TOTAL, VENT_ADULTOS_COVID, VENT_ADULTOS_NOCOVID, VENT_ADULTOS_OCC, 
+           VENT_ADULTOS_DISP, VENT_ADULTOS_TOTAL, VENT_PED_COVID, VENT_PED_NOCOVID, VENT_PED_OCC, 
+           VENT_PED_DISP, VENT_PED_TOTAL, CUARTOS_PRESNEG_OCC, CUARTOS_PRESNEG_DISP, CUARTOS_PRESNEG_TOTAL, 
+           VENT_ORD, VENT_REC, VENT_ENTR, CONVALECIENTES, HospitCOV19, CamasICU, CamasICU_disp)
   hosp_mort <- full_join(hosp_mort, old_hosp_mort, by = "date") %>%
     arrange(date) %>%
     mutate(HospitCOV19 = ifelse(is.na(HospitCOV19.x), HospitCOV19.y, HospitCOV19.x),
