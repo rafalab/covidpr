@@ -47,6 +47,16 @@ library(splines)
 #   return(tibble(date = d, fit = fit, lower = lower, upper = upper))  
 # }
 
+
+## if on server, save with full path
+## if not on server, save to home directory
+if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
+  rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
+} else{
+  rda_path <- "rdas"
+}
+
+
 # moving average ----------------------------------------------------------
 
 ma7 <- function(d, y, k = 7) 
@@ -991,13 +1001,6 @@ travelers <- jsonlite::fromJSON(url) %>%
 
 message("Saving data.")
 
-## if on server, save with full path
-## if not on server, save to home directory
-if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
-  rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
-} else{
-  rda_path <- "rdas"
-}
 ## define date and time of latest download
 the_stamp <- now(tzone="America/Puerto_Rico")
 save(first_day, last_complete_day,
