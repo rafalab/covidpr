@@ -320,7 +320,7 @@ server <- function(input, output, session) {
   })
 
   # -- This shows a summary
-  res <- reactive(compute_summary(tests, hosp_mort))
+  res <- reactive(compute_summary(tests, hosp_mort, day = last_complete_day))
 
   output$positividad <-  renderText({
     paste0(
