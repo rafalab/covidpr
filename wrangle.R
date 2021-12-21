@@ -293,15 +293,19 @@ all_cases <- all_tests_with_id %>%
   bind_rows(mol_anti) %>%
   filter(date>=first_day & result == "positive" &
            testType %in% test_types) %>%
-  group_by(testType, patientId) %>%
+  arrange(testType, patientId, date) %>%
+  group_by(testType, patientId) %>% ##newId takes reinfection into account
+  mutate(newId = paste0(patientId, "-", 
+                        c(0, floor(diff(as.numeric(date))/90)))) %>%
   mutate(n=n()) %>%
-  arrange(date) %>%
+  ungroup() %>%
+  arrange(testType, newId, date) %>%
+  group_by(testType, newId) %>%
   slice(1) %>% 
   ungroup() %>%
   select(-patientId, -result) %>%
   arrange(testType, date)
 
-# compute daily new cases
 cases <- all_cases %>%
   group_by(testType, date) %>% 
   summarize(cases = n(), .groups = "drop") 
