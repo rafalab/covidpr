@@ -80,7 +80,7 @@ plot_positivity <- function(tests,
   the_ylim <- c(the_ylim$lower, the_ylim$upper)
   
   if(yscale){
-    ret <- ret + coord_cartesian(ylim = c(0, 0.15)) +
+    ret <- ret + coord_cartesian(ylim = c(0, pmax(the_ylim[2], 0.15))) +
       scale_y_continuous(labels = scales::percent) 
 
   } else{
@@ -1159,7 +1159,7 @@ summary_by_region <- function(tests_by_region,
       select(date, region, the_stat)
     dat <- dat %>% rename(the_stat = fit)
     var_title <- "Tasa de positividad (pruebas)"
-    the_ylim <- c(0, 0.2)
+    the_ylim <- c(0, pmax(0.2, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
   }
   if(version == "tp_casos"){
@@ -1168,7 +1168,7 @@ summary_by_region <- function(tests_by_region,
       select(date, region, the_stat)
     dat <- dat %>% rename(the_stat = cases_rate)
     var_title <- "Tasa de positividad (casos)"
-    the_ylim <- c(0, 0.15)
+    the_ylim <- c(0, pmax(0.15, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
   }
   if(version == "casos"){
@@ -1180,7 +1180,7 @@ summary_by_region <- function(tests_by_region,
       mutate(cases_week_avg = cases_week_avg/poblacion*10^5) %>%
       rename(the_stat = cases_week_avg) 
     var_title <- "Casos únicos por día por 100,000 habitantes"
-    the_ylim <- c(0, 40)
+    the_ylim <- c(0, pmax(40, max(dat$the_stat, na.rm = TRUE)))
   }
   if(version ==  "pruebas"){
     tab <- dat %>% 
@@ -1190,7 +1190,7 @@ summary_by_region <- function(tests_by_region,
       mutate(people_total_week = people_total_week/poblacion*10^5) %>%
       rename(the_stat = people_total_week)
     var_title <- "Pruebas por día por 100,000 habitantes"
-    the_ylim <- c(0, 3000)
+    the_ylim <- c(0, pmax(3000, max(dat$the_stat, na.rm = TRUE)))
   }
   if(version ==  "prop"){
     dat <- dat %>% group_by(date) %>%
@@ -1201,7 +1201,7 @@ summary_by_region <- function(tests_by_region,
       select(date, region, the_stat)
    
     var_title <- "Por ciento de pruebas"
-    the_ylim <- c(0, .35)
+    the_ylim <- c(0, pmax(0.35, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
     }
   
@@ -1231,7 +1231,7 @@ summary_by_region <- function(tests_by_region,
   p <- dat %>% 
     ggplot(aes(date, the_stat, color = region,  lty = date > last_day)) + 
     geom_line(lwd = 1.25, alpha = 0.75) +
-    guides(linetype = FALSE) +
+    guides(linetype = "none") +
     xlab("Fecha") +
     ylab(var_title) +
     labs(color = "Región") +
@@ -1305,7 +1305,7 @@ summary_by_age <- function(tests_by_age,
       select(date, ageRange, the_stat)
     dat <- dat %>% rename(the_stat = fit, daily_stat = rate)
     var_title <- "Tasa de positividad (pruebas)"
-    the_ylim <- c(0, 0.25)
+    the_ylim <- c(0, pmax(0.25, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
   }
   if(version == "tp_casos"){
@@ -1314,7 +1314,7 @@ summary_by_age <- function(tests_by_age,
       select(date, ageRange, the_stat)
     dat <- dat %>% rename(the_stat = cases_rate, daily_stat = cases_rate_daily)
     var_title <- "Tasa de positividad (casos)"
-    the_ylim <- c(0, 0.2)
+    the_ylim <- c(0, pmax(0.2, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
   }
   if(version == "casos"){
@@ -1324,7 +1324,7 @@ summary_by_age <- function(tests_by_age,
     dat <- dat %>% 
       rename(the_stat = cases_week_avg, daily_stat = cases) 
     var_title <- "Casos únicos por día"
-    the_ylim <- c(0, 500)
+    the_ylim <- c(0, pmax(500, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   if(version == "casos_per"){
@@ -1336,7 +1336,7 @@ summary_by_age <- function(tests_by_age,
       mutate(cases_week_avg = cases_week_avg/poblacion*10^5, cases = cases/poblacion*10^5) %>%
       rename(the_stat = cases_week_avg, daily_stat = cases) 
     var_title <- "Casos únicos por día por 100,000 habitantes"
-    the_ylim <- c(0, 80)
+    the_ylim <- c(0, pmax(80, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   if(version == "pruebas"){
@@ -1346,7 +1346,7 @@ summary_by_age <- function(tests_by_age,
     dat <- dat %>% 
       rename(the_stat = tests_week_avg, daily_stat = tests_total) 
     var_title <- "Pruebas por día"
-    the_ylim <- c(0, 10000)
+    the_ylim <- c(0, pmax(10000, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   if(version == "pruebas_per"){
@@ -1358,7 +1358,7 @@ summary_by_age <- function(tests_by_age,
       mutate(tests_week_avg = tests_week_avg/poblacion*10^5, tests_total = tests_total/poblacion*10^5) %>%
       rename(the_stat = tests_week_avg, daily_stat = tests_total) 
     var_title <- "Pruebas por día por 100,000 habitantes"
-    the_ylim <- c(0, 500)
+    the_ylim <- c(0, pmax(500, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   if(version == "deaths"){
@@ -1374,7 +1374,7 @@ summary_by_age <- function(tests_by_age,
     dat <- dat %>% 
       rename(the_stat = deaths_week_avg, daily_stat = deaths) 
     var_title <- "Muertes por día"
-    the_ylim <- c(0, 10)
+    the_ylim <- c(0, pmax(10, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   if(version == "deaths_per"){
@@ -1386,7 +1386,7 @@ summary_by_age <- function(tests_by_age,
       mutate(deaths_week_avg = deaths_week_avg/poblacion*10^5, deaths = deaths/poblacion*10^5) %>%
       rename(the_stat = deaths_week_avg, daily_stat = deaths) 
     var_title <- "Muertes por día por 100,000 habitantes"
-    the_ylim <- c(0, 3.25)
+    the_ylim <- c(0, pmax(3.25, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   # if(version ==  "prop"){
@@ -1472,7 +1472,7 @@ summary_by_age <- function(tests_by_age,
     p <- dat %>% 
       ggplot(aes(date, the_stat, color = ageRange,  lty = date > last_day)) + 
       geom_line(lwd = 1.25, alpha = 0.75) +
-      guides(linetype = FALSE) +
+      guides(linetype = "none") +
       xlab("Fecha") +
       ylab(var_title) +
       labs(color = "Edad") +
