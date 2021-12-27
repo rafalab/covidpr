@@ -289,7 +289,7 @@ tests <- tests %>%
   ungroup()
 
 # compute unique cases ------------------------------------------------------------
-all_cases <- all_tests_with_id %>%  
+cases <- all_tests_with_id %>%  
   bind_rows(mol_anti) %>%
   filter(date>=first_day & result == "positive" &
            testType %in% test_types) %>%
@@ -304,9 +304,7 @@ all_cases <- all_tests_with_id %>%
   slice(1) %>% 
   ungroup() %>%
   select(-patientId, -result) %>%
-  arrange(testType, date)
-
-cases <- all_cases %>%
+  arrange(testType, date) %>%
   group_by(testType, date) %>% 
   summarize(cases = n(), .groups = "drop") 
 
@@ -495,303 +493,9 @@ for(j in which(names(vaccines)!="date")){
 ## fill in the NAs
 hosp_mort <- full_join(hosp_mort, vaccines, by = "date") 
 
+## add deaths by age
 
-# if(FALSE){
-#   plot_deaths(hosp_mort)
-# }
-
-# Compute time it takes tests to come in ----------------------------------
-
-message("Computing lag statistics.")
-
-rezago <- all_tests_with_id  %>% 
-  filter(result %in% c("positive", "negative") & 
-           testType %in% original_test_types &
-           resultCreatedAt >= collectedDate) %>% ## based on @midnucas suggestion: can't be added before it's reported
-  group_by(testType) %>%
-  mutate(diff = (as.numeric(resultCreatedAt) - as.numeric(collectedDate)) / (60 * 60 * 24),
-          Resultado = factor(result, labels = c("Negativos", "Positivos"))) %>%
-  ungroup %>%
-  select(testType, date, Resultado, diff) %>%
-  filter(!is.na(diff))
-
-
-# Computing positivity rate by lab ----------------------------------------
-
-url <- "https://bioportal.salud.gov.pr/api/administration/reports/tests-by-collected-date-and-entity"
-
-message("Reading lab data.")
-
-all_labs_data <- jsonlite::fromJSON(url)
-
-labs <- all_labs_data %>%
-  select(-molecular, -serological, -antigens) %>%
-  rename(Laboratorio = entityName,
-         date = collectedDate) %>%
-  mutate(date = as_date(date),
-         Laboratorio = str_trim(str_remove_all(tolower(Laboratorio), "\t|inc|\\.|\\,")))
-
-                           
-##check the most common labs
-if(FALSE){
-  freqs <- bind_cols(labs, all_labs_data$molecular) %>% 
-    filter(date > make_date(2021, 1, 1)) %>%
-    group_by(Laboratorio) %>%
-    summarize(freq = sum(total), .groups = "drop") %>% 
-    ungroup()
-  freqs %>% View()
-}
-
-message("Processing lab data.")
-
-labs <- labs %>%
-  mutate(Laboratorio = case_when(str_detect(Laboratorio, "toledo") ~ "Toledo",
-                                 str_detect(Laboratorio, "bcel") ~ "BCEL",
-                                 str_detect(Laboratorio, "landr") ~ "Landrón",
-                                 str_detect(Laboratorio, "cmt") ~ "CMT",
-                                 str_detect(Laboratorio, "villa ana") ~ "Villa Ana",
-                                 str_detect(Laboratorio, "labcorp") ~ "LabCorp",
-                                 str_detect(Laboratorio, "quest") ~ "Quest",
-                                 str_detect(Laboratorio, "borinquen") ~ "Borinquen",
-                                 str_detect(Laboratorio, "coreplus") ~ "CorePlus",
-                                 str_detect(Laboratorio, "martin\\s") ~ "Marin",
-                                 str_detect(Laboratorio, "noy") ~ "Noy",
-                                 str_detect(Laboratorio, "hato rey pathology|hrp") ~ "HRP",
-                                 str_detect(Laboratorio, "inno") ~ "Inno Diagnostics",
-                                 str_detect(Laboratorio, "immuno reference lab") ~ "Immuno Reference",
-                                 str_detect(Laboratorio, "forense") ~ "Ciencias Forense",
-                                 #str_detect(Laboratorio, "nichols") ~ "Quest USA",
-                                 #str_detect(Laboratorio, "southern pathology services") ~ "Southern Pathology",
-                                 TRUE ~ "Otros"))
-
-molecular <- all_labs_data$molecular %>% 
-  mutate(testType = "Molecular",
-         positives = positives + presumptivePositives,
-         negatives = negatives,
-         tests = positives + negatives) %>%
-  select(testType, positives, tests)
-molecular <- bind_cols(labs, molecular) 
-
-serological <-  all_labs_data$serological %>%
-  mutate(testType = "Serological",
-         positives = positives,
-         negatives = negatives,
-         tests = positives + negatives) %>%
-  select(testType, positives, tests)
-serological <- bind_cols(labs, serological) 
-
-antigens <-  all_labs_data$antigens %>%
-  mutate(testType = "Antigens",
-         positives = positives,
-         negatives = negatives,
-         tests = positives + negatives) %>%
-  select(testType, positives, tests)
-antigens <- bind_cols(labs, antigens) 
-
-labs <- bind_rows(molecular, serological, antigens) %>%
-  filter(date >= first_day & date <= today()) %>%
-  group_by(testType, date, Laboratorio) %>%
-  summarize(positives = sum(positives),
-            tests = sum(tests),
-            missing_city = sum(totalMissingCity),
-            missing_phone = sum(totalMissingPhoneNumber),
-            .groups = "drop")
-
-
-lab_positivity <- function(dat){
-  day_seq <- seq(first_day + weeks(1), max(labs$date), by = "day")
-  map_df(day_seq, function(the_day){
-    ret <- dat %>% 
-      filter(date > the_day - weeks(1) & date <= the_day) %>%
-      summarize(date = the_day, 
-                n = sum(tests),
-                tests_week_avg  = n / 7, 
-                fit = ifelse(n==0, 0, sum(positives) / n),
-                lower = qbinom(0.025, n, fit) / n,
-                upper = qbinom(0.975, n, fit) / n) %>%
-      select(date, fit, lower, upper, tests_week_avg)
-  })
-}
-
-fits <- labs %>% 
-  nest_by(testType, Laboratorio) %>%
-  summarize(lab_positivity(data), .groups = "drop") %>%
-  group_by(testType, date) %>%
-  mutate(prop = tests_week_avg / sum(tests_week_avg)) 
-
-labs <- left_join(fits, labs, by = c("testType", "date", "Laboratorio"))
-
-
-## For Eddie
-lab_tab <- all_labs_data %>%
-  select(-molecular, -serological, -antigens) %>%
-  rename(Laboratorio = entityName,
-         date = collectedDate) %>%
-  mutate(date = as_date(date),
-         Laboratorio = str_trim(str_remove_all(tolower(Laboratorio), "\t|inc|\\.|\\,")))
-
-## wrange some of the names
-lab_tab <- lab_tab %>%
-  mutate(Laboratorio = case_when(str_detect(Laboratorio, "toledo") ~ "Toledo",
-                                 str_detect(Laboratorio, "bcel") ~ "BCEL",
-                                 str_detect(Laboratorio, "landr") ~ "Landrón",
-                                 str_detect(Laboratorio, "cmt") ~ "CMT",
-                                 str_detect(Laboratorio, "villa ana") ~ "Villa Ana",
-                                 str_detect(Laboratorio, "labcorp") ~ "LabCorp",
-                                 str_detect(Laboratorio, "quest") ~ "Quest",
-                                 str_detect(Laboratorio, "borinquen") ~ "Borinquen",
-                                 str_detect(Laboratorio, "coreplus") ~ "CorePlus",
-                                 str_detect(Laboratorio, "martin\\s") ~ "Marin",
-                                 str_detect(Laboratorio, "noy") ~ "Noy",
-                                 str_detect(Laboratorio, "hato rey pathology|hrp") ~ "HRP",
-                                 str_detect(Laboratorio, "inno") ~ "Inno Diagnostics",
-                                 str_detect(Laboratorio, "immuno reference lab") ~ "Immuno Reference",
-                                 str_detect(Laboratorio, "forense") ~ "Ciencias Forense",
-                                 str_detect(Laboratorio, "nichols") ~ "Quest USA",
-                                 str_detect(Laboratorio, "southern pathology services") ~ "Southern Pathology",
-                                 TRUE ~ str_replace(str_to_title(Laboratorio), "Ii", "II")))
-
-molecular <- all_labs_data$molecular %>% 
-  mutate(testType = "Molecular",
-         tests = positives + presumptivePositives + negatives) %>%
-  select(testType, tests)
-molecular <- bind_cols(lab_tab, molecular) 
-
-serological <-  all_labs_data$serological %>%
-  mutate(testType = "Serological",
-         tests = positives + negatives) %>%
-  select(testType, tests)
-serological <- bind_cols(lab_tab, serological) 
-
-antigens <-  all_labs_data$antigens %>%
-  mutate(testType = "Antigens",
-         tests = positives + negatives) %>%
-  select(testType, tests)
-antigens <- bind_cols(lab_tab, antigens) 
-
-lab_tab <- bind_rows(molecular, serological, antigens) %>%
-  filter(date >= first_day & date <= today()) %>%
-  group_by(testType, date, Laboratorio) %>%
-  summarize(tests = sum(tests),.groups = "drop")
-
-lab_tab  <- lab_tab %>% group_by(Laboratorio, testType) %>% 
-  mutate(total = sum(tests), .groups = "drop") %>% 
-  ungroup() %>%
-  group_by(testType) %>%
-  mutate(Laboratorio = ifelse(total < 100, "Otros", Laboratorio)) %>%
-  group_by(testType, date, Laboratorio) %>%
-  summarize(tests = sum(tests),.groups = "drop") 
-
-
-# By Region ---------------------------------------------------------------
-
-## We now create the tests data table but by region
-## The code is repetivie becuase this was added after we had the code for the global case
-
-message("Computing by region statistics.")
-
-tests_by_region <- all_tests_with_id %>%
-  bind_rows(mol_anti) %>%
-  filter(date >= first_day & 
-           testType %in% test_types & 
-           result %in% c("positive", "negative")) %>%
-  group_by(testType, region, date) %>%
-  summarize(people_positives = n_distinct(patientId[result == "positive"]),
-            people_total = n_distinct(patientId),
-            tests_positives = sum(result == "positive"),
-            tests_total = n(),
-            .groups = "drop") %>%
-  mutate(rate = people_positives / people_total)
-
-## run the function on each test type
-fits <- all_tests_with_id %>% 
-  bind_rows(mol_anti) %>%
-  mutate(entry_date = as_date(orderCreatedAt)) %>%
-  filter(date >= first_day & testType %in% test_types & 
-           result %in% c("positive", "negative")) %>%
-  nest_by(testType, region) %>%
-  summarize(positivity(data), .groups = "drop")
-
-## add new variable to test data frame
-tests_by_region <- left_join(tests_by_region, fits, by = c("testType", "region", "date")) 
-
-## compute weekly totals for positive tests and total tests
-tests_by_region <- tests_by_region %>% 
-  group_by(testType, region) %>%
-  mutate(tests_positives_week = sum7(d = date, y = tests_positives)$moving_sum) %>%
-  mutate(tests_total_week = sum7(d = date, y = tests_total)$moving_sum) %>%
-  ungroup()
-
-# compute unique cases ------------------------------------------------------------
-cases_by_region <- all_cases %>%
-  group_by(testType, region, date) %>% 
-  summarize(cases = n(), .groups = "drop") 
-
-# Make sure all dates are included
-cases_by_region <- left_join(select(tests_by_region, testType, region, date), 
-                             cases_by_region, 
-                             by = c("testType", "region", "date")) %>%
-  replace_na(list(cases = 0)) 
-
-# compute daily weekly average and add to cases data frame
-fits <- cases_by_region %>% 
-  group_by(testType, region) %>%
-  do(ma7(d = .$date, y = .$cases)) %>%
-  rename(cases_week_avg = moving_avg)
-cases_by_region <- left_join(cases_by_region, fits, by = c("testType", "region", "date"))
-
-## add new cases and weekly average to tests data frame
-tests_by_region <- left_join(tests_by_region, cases_by_region, by = c("testType", "region", "date")) %>%
-  mutate(cases_plus_negatives = (people_total_week - people_positives_week + cases_week_avg * 7),
-         cases_rate = cases_week_avg * 7 / cases_plus_negatives,
-         cases_plus_negatives_daily = people_total - people_positives + cases,
-         cases_rate_daily = cases / cases_plus_negatives_daily)
-
-## Not using unique negatives so removed them to save time
-## Compute unique negatives
-
-# compute unique negative cases ------------------------------------------------------------
-negative_cases_by_region <- all_tests_with_id %>%
-  bind_rows(mol_anti) %>%
-  filter(date>=first_day & result == "negative" &
-           testType %in% test_types) %>%
-  group_by(testType, region, patientId) %>%
-  arrange(date) %>%
-  slice(1) %>%
-  ungroup() %>%
-  select(-patientId, -result) %>%
-  arrange(testType, date) %>%
-  group_by(testType, region, date) %>%
-  summarize(negative_cases = n(), .groups = "drop")
-
-# Make sure all dates are included
-negative_cases_by_region <-  select(tests_by_region, testType, region, date) %>%
-  left_join(negative_cases_by_region, by = c("testType", "region", "date")) %>%
-  replace_na(list(negative_cases = 0))
-
-# compute daily weekly average and add to negative_cases data frame
-fits <- negative_cases_by_region %>%
-  group_by(testType, region) %>%
-  do(ma7(d = .$date, y = .$negative_cases)) %>%
-  rename(negative_cases_week_avg = moving_avg)
-negative_cases_by_region <- left_join(negative_cases_by_region, fits, by = c("testType", "region", "date"))
-
-## add new cases and weekly average to tests data frame
-tests_by_region <- left_join(tests_by_region, negative_cases_by_region, by = c("testType", "region", "date"))
-
-## add regions populations
-pop_by_region <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/master/dashboard/data/poblacion-region.csv",
-                          skip = 1, col_names = c("rn", "region", "poblacion")) %>% 
-  select(region, poblacion) %>%
-  mutate(region = factor(region, levels = region[order(poblacion, decreasing = TRUE)]))
-
-tests_by_region$region <- factor(as.character(tests_by_region$region), 
-                                 levels = c(levels(pop_by_region$region), "No reportada"))
-
-
-
-# By age ------------------------------------------------------------------
-message("Computing by age statistics.")
+message("Computing deaths by age.")
 
 age_starts <- c(0, 10, 15, 20, 30, 40, 65, 75)
 age_ends <- c(9, 14, 19, 29, 39, 64, 74, Inf)
@@ -799,124 +503,6 @@ age_ends <- c(9, 14, 19, 29, 39, 64, 74, Inf)
 ## compute daily totals
 age_levels <- paste(age_starts, age_ends, sep = " a ")
 age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
-
-tests_by_age <- all_tests_with_id %>% 
-  bind_rows(mol_anti) %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) %>%
-  filter(date >= first_day & 
-           testType %in% test_types & 
-           result %in% c("positive", "negative")) %>%
-  group_by(testType, date, ageRange) %>% 
-  summarize(people_positives = n_distinct(patientId[result == "positive"]),
-            people_total = n_distinct(patientId),
-            tests_positives = sum(result == "positive"),
-            tests_total = n(),
-            .groups = "drop") %>%
-  mutate(rate = people_positives / people_total)
-         
-## run the function on each test type
-fits <- all_tests_with_id %>% 
-  bind_rows(mol_anti) %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) %>%
-  mutate(entry_date = as_date(orderCreatedAt)) %>%
-  filter(date >= first_day & testType %in% test_types & 
-           result %in% c("positive", "negative")) %>%
-  nest_by(testType, ageRange) %>%
-  summarize(positivity(data), .groups = "drop")
-
-## add new variable to test data frame
-tests_by_age <- left_join(tests_by_age, fits, by = c("testType", "date", "ageRange")) 
-
-## compute weekly totals for positive tests and total tests
-tests_by_age <- tests_by_age %>% 
-  group_by(testType, ageRange) %>%
-  mutate(tests_positives_week = sum7(d = date, y = tests_positives)$moving_sum) %>%
-  mutate(tests_total_week = sum7(d = date, y = tests_total)$moving_sum) %>%
-  mutate(tests_week_avg = ma7(d = date, y = tests_total)$moving_avg) %>%
-  ungroup()
-
-# compute daily new cases
-cases_by_age <- all_cases %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) %>% 
-  group_by(testType, date, ageRange) %>% 
-  summarize(cases = n(), .groups = "drop") 
-
-# Make sure all dates are included
-cases_by_age <-  left_join(select(tests_by_age, testType, date, ageRange), cases_by_age, by = c("testType", "date", "ageRange")) %>%
-  replace_na(list(cases = 0)) 
-
-# compute daily weekly average and add to cases data frame
-fits <- cases_by_age %>% 
-  group_by(testType, ageRange) %>%
-  do(ma7(d = .$date, y = .$cases)) %>%
-  rename(cases_week_avg = moving_avg)
-cases_by_age <- left_join(cases_by_age, fits, by = c("testType", "date", "ageRange"))
-
-## add new cases and weekly average to tests data frame
-tests_by_age <- left_join(tests_by_age, cases_by_age, by = c("testType", "date", "ageRange")) %>%
-  mutate(cases_plus_negatives = (people_total_week - people_positives_week + cases_week_avg * 7),
-         cases_rate = cases_week_avg * 7 / cases_plus_negatives,
-         cases_plus_negatives_daily = people_total - people_positives + cases,
-         cases_rate_daily = cases / cases_plus_negatives_daily)
-
-# compute unique negative cases ------------------------------------------------------------
-negative_cases_by_age <- all_tests_with_id %>%
-  bind_rows(mol_anti) %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) %>%
-  filter(date>=first_day & result == "negative" &
-           testType %in% test_types) %>%
-  group_by(testType, ageRange, patientId) %>%
-  arrange(date) %>%
-  slice(1) %>%
-  ungroup() %>%
-  select(-patientId, -result) %>%
-  arrange(testType, date) %>%
-  group_by(testType, ageRange, date) %>%
-  summarize(negative_cases = n(), .groups = "drop")
-
-# Make sure all dates are included
-negative_cases_by_age <-  select(tests_by_age, testType, ageRange, date) %>%
-  left_join(negative_cases_by_age, by = c("testType", "ageRange", "date")) %>%
-  replace_na(list(negative_cases = 0))
-
-# compute daily weekly average and add to negative_cases data frame
-fits <- negative_cases_by_age %>%
-  group_by(testType, ageRange) %>%
-  do(ma7(d = .$date, y = .$negative_cases)) %>%
-  rename(negative_cases_week_avg = moving_avg)
-
-negative_cases_by_age <- left_join(negative_cases_by_age, fits, by = c("testType", "ageRange", "date"))
-
-## add new cases and weekly average to tests data frame
-tests_by_age <- left_join(tests_by_age, negative_cases_by_age, by = c("testType", "ageRange", "date"))
-
-## add age populations
-pop_by_age <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/master/dashboard/data/poblacion-por-edad.csv") %>%
-  rename(ageRange = agegroup, poblacion = population) %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) %>% 
-  group_by(ageRange) %>%
-  summarize(poblacion = sum(poblacion), .groups = "drop") %>%
-  mutate(ageRange = str_replace(ageRange, "-", " to ")) %>%
-  mutate(ageRange = factor(ageRange, levels = levels(tests_by_age$ageRange)))
-  
-## add deaths by age
-
-message("Computing deaths by age.")
 
 url <- "https://bioportal.salud.gov.pr/api/administration/reports/deaths/summary"
 
@@ -929,7 +515,7 @@ deaths <- jsonlite::fromJSON(url) %>%
          age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
   mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
   mutate(ageRange = factor(ageRange, levels = age_levels)) 
-  
+
 ## replace the death data with BioPortal data for consistency
 
 hosp_mort <- deaths %>%
@@ -955,90 +541,24 @@ deaths_by_age <- deaths %>%
   group_by(ageRange) %>%
   mutate(deaths_week_avg = ma7(date, deaths)$moving_avg)
 
-
-## Rezagos muerte
-
-## The following code commented out because we now use Salud API
-## Adding rezago computation for deaths
-# dat <- read_csv("https://raw.githubusercontent.com/sacundim/covid-19-puerto-rico/master/assets/data/cases/PuertoRico-bitemporal.csv",
-#                 col_types = cols(bulletin_date = col_date(),
-#                                  datum_date = col_date(),
-#                                  confirmed_and_suspect_cases = col_integer(),
-#                                  confirmed_cases = col_integer(),
-#                                  probable_cases = col_integer(),
-#                                  suspect_cases = col_integer(),
-#                                  deaths = col_integer()))
-
-rezago_mort <- deaths %>% 
-  filter(!is.na(date)) %>%
-  mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
-  arrange(date, bulletin_date) %>%
-  mutate(diff = (as.numeric(bulletin_date) - as.numeric(date))) %>%
-  select(date, diff)
-
-
-## add passanger data
-
-message("Computing traveler statistics.")
-
-url <- "https://BioPortal.salud.gov.pr/api/administration/reports/travels/total-forms-by-reported-arrival-date"
-
-travelers <- jsonlite::fromJSON(url) %>%
-  mutate(date = mdy(date)) %>%
-  filter(year(date)>=2020) %>%
-  filter(date <= today()) %>%
-  mutate(residents_week_avg =  ma7(date, residents)$moving_avg,
-         perc_residents = percentageResidentsArrivedWithNegativePcrResults/100,
-         perc_residents_week_avg = ma7(date, perc_residents*residents)$moving_avg/residents_week_avg,
-
-         short = nonResidentsStayingLessThan5Days,
-         short_week_avg =  ma7(date, short)$moving_avg,
-         perc_short = percentageNonResidentsStayingLessThan5DaysArrivedWithNegativePcrResults/100,
-         perc_short_week_avg  = ma7(date, perc_short*short)$moving_avg/short_week_avg,
-
-         long = nonResidentsStaying5DaysOrMore,
-         long_week_avg =  ma7(date, nonResidentsStaying5DaysOrMore)$moving_avg,
-         perc_long = percentageResidentsStaying5DaysOrMoreArrivedWithNegativePcrResults/100,
-         perc_long_week_avg  = ma7(date, perc_long*long)$moving_avg/long_week_avg,
-         
-         vaccine = selfReportedTotalArrivedVaccinatedBothDoses / total,
-         vaccine_week_avg = ma7(date, selfReportedTotalArrivedVaccinatedBothDoses)$moving_avg / 
-           ma7(date, total)$moving_avg ) %>%
-  select(date, 
-         residents, perc_residents, short, perc_short, long, perc_long,
-         residents_week_avg, perc_residents_week_avg, short_week_avg, perc_short_week_avg, long_week_avg, perc_long_week_avg, 
-         vaccine, vaccine_week_avg)
-
-# -- Save data
-
-message("Saving data.")
+## Temporary save to have results faster
 
 ## define date and time of latest download
 the_stamp <- now(tzone="America/Puerto_Rico")
 save(first_day, last_complete_day,
      alpha, the_stamp, 
      tests, cases,
-     hosp_mort, labs, pr_pop, 
+     hosp_mort, pr_pop, 
      file = file.path(rda_path, "data.rda"))
 
 ## save this as backup in case salud dashboard down
 save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
-save(labs, file = file.path(rda_path, "labs.rda"))
-
 save(tests_by_strata, file = file.path(rda_path, "tests_by_strata.rda"))
 
-save(lab_tab, file = file.path(rda_path, "lab_tab.rda"))
-
-save(rezago, file = file.path(rda_path, "rezago.rda"))
-
-save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
-
-save(tests_by_region, pop_by_region, file = file.path(rda_path, "regions.rda"))
-
-save(deaths_by_age, tests_by_age, pop_by_age, file = file.path(rda_path, "by-age.rda"))
-
-save(travelers, file = file.path(rda_path, "travelers.rda"))
+# if(FALSE){
+#   plot_deaths(hosp_mort, make_date(2020,6,1), today())
+# }
 
 ## For backward compatibility
 all_tests <- all_tests %>%  filter(testType == "Molecular")
