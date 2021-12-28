@@ -1,4 +1,4 @@
-# -- Libraries   
+## This depends on objects created by wrangle.R
 library(tidyverse)
 library(lubridate)
 library(splines)
@@ -45,6 +45,7 @@ positivity <- function(dat){
 
 first_day <- make_date(2020, 3, 12)
 
+last_complete_day <- today() - 1
 
 all_tests_with_id <- readRDS(file.path(rda_path, "all_tests_with_id.rds"))
 # Compute time it takes tests to come in ----------------------------------
@@ -315,6 +316,23 @@ pop_by_age <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/maste
   summarize(poblacion = sum(poblacion), .groups = "drop") %>%
   mutate(ageRange = str_replace(ageRange, "-", " to ")) %>%
   mutate(ageRange = factor(ageRange, levels = levels(tests_by_age$ageRange)))
+
+message("Computing deaths by age.")
+
+load(file.path(rda_path, "deaths.rda"))
+
+## Use this to assure all dates are included
+all_dates <- data.frame(date = seq(first_day, max(c(last_complete_day, deaths$date)), by = "day"))
+deaths_by_age <- deaths %>%
+  filter(!is.na(ageRange)) %>%
+  group_by(date, ageRange) %>%
+  summarize(deaths = n(), .groups = "drop") %>%
+  ungroup() %>%
+  full_join(all_dates, by = "date") %>%
+  complete(date, nesting(ageRange), fill = list(deaths = 0)) %>%
+  filter(!is.na(ageRange)) %>%
+  group_by(ageRange) %>%
+  mutate(deaths_week_avg = ma7(date, deaths)$moving_avg)
 
 # -- Save data
 

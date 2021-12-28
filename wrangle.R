@@ -493,16 +493,15 @@ for(j in which(names(vaccines)!="date")){
 ## fill in the NAs
 hosp_mort <- full_join(hosp_mort, vaccines, by = "date") 
 
-## add deaths by age
-
-message("Computing deaths by age.")
-
+## downloading deaths by age
 age_starts <- c(0, 10, 15, 20, 30, 40, 65, 75)
 age_ends <- c(9, 14, 19, 29, 39, 64, 74, Inf)
 
 ## compute daily totals
 age_levels <- paste(age_starts, age_ends, sep = " a ")
 age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
+
+message("Computing Deaths")
 
 url <- "https://bioportal.salud.gov.pr/api/administration/reports/deaths/summary"
 
@@ -528,18 +527,6 @@ hosp_mort <- deaths %>%
          mort_week_avg =  ma7(date, deaths)$moving_avg) %>%
   select(-deaths)
 
-## Use this to assure all dates are included
-all_dates <- data.frame(date = seq(first_day, max(c(last_complete_day, deaths$date)), by = "day"))
-deaths_by_age <- deaths %>%
-  filter(!is.na(ageRange)) %>%
-  group_by(date, ageRange) %>%
-  summarize(deaths = n(), .groups = "drop") %>%
-  ungroup() %>%
-  full_join(all_dates, by = "date") %>%
-  complete(date, nesting(ageRange), fill = list(deaths = 0)) %>%
-  filter(!is.na(ageRange)) %>%
-  group_by(ageRange) %>%
-  mutate(deaths_week_avg = ma7(date, deaths)$moving_avg)
 
 ## Rezagos muerte
 
@@ -567,11 +554,10 @@ save(tests_by_strata, file = file.path(rda_path, "tests_by_strata.rda"))
 
 save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 
-# if(FALSE){
-#   plot_deaths(hosp_mort, make_date(2020,6,1), today())
-# }
+## for use in wrangle-by-strata.R
+save(deaths, last_complete_day, file = file.path(rda_path, "deaths.rda"))
 
-## For backward compatibility
+## For backward compatibility keep only molecular
 all_tests <- all_tests %>%  filter(testType == "Molecular")
 saveRDS(all_tests, file = file.path(rda_path, "all_tests.rds"), compress = "xz")
 saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"), compress = "xz")
