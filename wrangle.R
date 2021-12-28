@@ -541,7 +541,16 @@ deaths_by_age <- deaths %>%
   group_by(ageRange) %>%
   mutate(deaths_week_avg = ma7(date, deaths)$moving_avg)
 
-## Temporary save to have results faster
+## Rezagos muerte
+
+rezago_mort <- deaths %>% 
+  filter(!is.na(date)) %>%
+  mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
+  arrange(date, bulletin_date) %>%
+  mutate(diff = (as.numeric(bulletin_date) - as.numeric(date))) %>%
+  select(date, diff)
+
+## Save results
 
 ## define date and time of latest download
 the_stamp <- now(tzone="America/Puerto_Rico")
@@ -555,6 +564,8 @@ save(first_day, last_complete_day,
 save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
 save(tests_by_strata, file = file.path(rda_path, "tests_by_strata.rda"))
+
+save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 
 # if(FALSE){
 #   plot_deaths(hosp_mort, make_date(2020,6,1), today())

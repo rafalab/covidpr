@@ -316,34 +316,11 @@ pop_by_age <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/maste
   mutate(ageRange = str_replace(ageRange, "-", " to ")) %>%
   mutate(ageRange = factor(ageRange, levels = levels(tests_by_age$ageRange)))
 
-## Rezagos muerte
-url <- "https://bioportal.salud.gov.pr/api/administration/reports/deaths/summary"
-
-deaths <- jsonlite::fromJSON(url) %>%
-  mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
-  mutate(date = if_else(date < first_day | date > today(), 
-                        as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
-                        date)) %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) 
-
-rezago_mort <- deaths %>% 
-  filter(!is.na(date)) %>%
-  mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
-  arrange(date, bulletin_date) %>%
-  mutate(diff = (as.numeric(bulletin_date) - as.numeric(date))) %>%
-  select(date, diff)
-
-
 # -- Save data
 
 message("Saving data.")
 
 save(rezago, file = file.path(rda_path, "rezago.rda"))
-
-save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 
 save(tests_by_region, pop_by_region, file = file.path(rda_path, "regions.rda"))
 
