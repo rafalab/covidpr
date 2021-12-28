@@ -317,17 +317,17 @@ pop_by_age <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/maste
   mutate(ageRange = factor(ageRange, levels = levels(tests_by_age$ageRange)))
 
 ## Rezagos muerte
+url <- "https://bioportal.salud.gov.pr/api/administration/reports/deaths/summary"
 
-## The following code commented out because we now use Salud API
-## Adding rezago computation for deaths
-# dat <- read_csv("https://raw.githubusercontent.com/sacundim/covid-19-puerto-rico/master/assets/data/cases/PuertoRico-bitemporal.csv",
-#                 col_types = cols(bulletin_date = col_date(),
-#                                  datum_date = col_date(),
-#                                  confirmed_and_suspect_cases = col_integer(),
-#                                  confirmed_cases = col_integer(),
-#                                  probable_cases = col_integer(),
-#                                  suspect_cases = col_integer(),
-#                                  deaths = col_integer()))
+deaths <- jsonlite::fromJSON(url) %>%
+  mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
+  mutate(date = if_else(date < first_day | date > today(), 
+                        as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
+                        date)) %>%
+  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
+         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
+  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
+  mutate(ageRange = factor(ageRange, levels = age_levels)) 
 
 rezago_mort <- deaths %>% 
   filter(!is.na(date)) %>%
