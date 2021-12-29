@@ -435,7 +435,7 @@ server <- function(input, output, session) {
                         "<LI><b>Pruebas</b> = personas que se hicieron pruebas.</LI>", 
                         "<LI><b>Positivos</b> personas que salieron positivo.</LI>",
                         "<LI><b>Negativos</b> =  <b>Pruebas</b> - <b>Positivos</b>.</LI>",
-                        "<LI><b>Casos</b> = casos nuevos únicos, personas que salieron positivo por primera vez.</LI>",
+                        "<LI><b>Casos</b> = casos nuevos únicos, personas que salieron positivo por primera vez en los últimos 90 días.</LI>",
                         "</UL><p>Las dos definiciones son las siguientes:</p>",
                         "<UL>",
                         "<LI><b>Prueba sobre prueba</b> = <b>Positivos</b> / <b>Pruebas</b></LI>",
