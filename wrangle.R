@@ -55,7 +55,6 @@ if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
   rda_path <- "rdas"
 }
 
-
 # moving average ----------------------------------------------------------
 
 ma7 <- function(d, y, k = 7) 
@@ -83,11 +82,6 @@ imputation_delay  <- 2
 alpha <- 0.05
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
-test_url <- "https://bioportal.salud.gov.pr/api/administration/reports/minimal-info-unique-tests"
-
-test_url_molecular <- paste0(test_url,"?testType=Molecular")
-test_url_antigens <- paste0(test_url,"?testType=Antigens")
-
 cases_url <- "https://bioportal.salud.gov.pr/api/administration/reports/orders/basic"
 
 cases_url_molecular <-  paste0(cases_url,"?testType=Molecular")
@@ -133,54 +127,6 @@ get_bioportal <- function(url){
 #original_test_types <- c("Molecular", "Serological", "Antigens")
 test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 original_test_types <- c("Molecular", "Antigens")
-
-# Reading and wrangling test data from database ----------------------------------------------
-message("Reading test data.")
-
-all_tests_molecular <- get_bioportal(test_url_molecular)
-all_tests_antigens <- get_bioportal(test_url_antigens)
-all_tests <- rbind(all_tests_molecular, all_tests_antigens)
-rm(all_tests_molecular, all_tests_antigens); gc(); gc()
-
-message("Processing test data.")
-
-all_tests <- all_tests %>%  
-  rename(patientCity = city) %>%
-  as_tibble() %>%
-  mutate(testType = str_to_title(testType),
-         testType = ifelse(testType == "Antigeno", "Antigens", testType),
-         collectedDate  = mdy(collectedDate),
-         reportedDate   = mdy(reportedDate),
-         createdAt      = mdy_hm(createdAt),
-         ageRange       = na_if(ageRange, "N/A"),
-         ageRange       = factor(ageRange, levels = age_levels),
-         patientCity    = ifelse(patientCity == "Loiza", "Loíza", patientCity),
-         patientCity    = ifelse(patientCity == "Rio Grande", "Río Grande", patientCity),
-         patientCity    = factor(patientCity),
-         result         = tolower(result),
-         result         = case_when(grepl("positive", result) ~ "positive",
-                                    grepl("negative", result) ~ "negative",
-                                    result == "not detected" ~ "negative",
-                                    TRUE ~ "other")) %>%
-  arrange(reportedDate, collectedDate) %>%
-  filter(testType %in% test_types)
-
-## fixing bad dates: if you want to remove bad dates instead, change FALSE TO TRUE
-if(FALSE){
-  ## remove bad dates
-  all_tests <- all_tests %>% 
-  filter(!is.na(collectedDate) & year(collectedDate) %in% the_years & collectedDate <= today()) %>%
-  mutate(date = collectedDate) 
-} else{
-  ## Impute missing dates and remove inconsistent dates
-  all_tests <- all_tests %>% 
-    mutate(date = if_else(collectedDate > reportedDate, reportedDate, collectedDate)) %>% ## if collectedDate is in the future make it reportedDate
-    mutate(date = if_else(is.na(collectedDate), reportedDate - days(imputation_delay),  collectedDate)) %>%
-    mutate(date = if_else(!year(date) %in% the_years, reportedDate - days(imputation_delay),  date)) %>%
-    filter(year(date) %in% the_years & date <= today()) %>%
-    arrange(date, reportedDate)
-}
-
 
 # Reading and wrangling cases data from database ---------------------------
 age_levels <-  paste(seq(0, 125, 5), "to", seq(4, 129, 5))
@@ -400,23 +346,6 @@ if(FALSE){
   
 }
 
-# -- summaries stratified by age group and patientID
-mol_anti_2 <-  all_tests %>%
-  filter(date >= first_day & testType %in% c("Molecular", "Antigens") & 
-           result %in% c("positive", "negative")) %>%
-  mutate(testType = "Molecular+Antigens") 
-
-tests_by_strata <- all_tests %>%  
-  bind_rows(mol_anti_2) %>%
-  filter(date >= first_day & testType %in% test_types & 
-           result %in% c("positive", "negative")) %>%
-  filter(date>=first_day) %>%
-  mutate(patientCity = fct_explicit_na(patientCity, "No reportado")) %>%
-  mutate(ageRange = fct_explicit_na(ageRange, "No reportado")) %>%
-  group_by(testType, date, patientCity, ageRange, .drop = FALSE) %>%
-  summarize(positives = sum(result == "positive"), tests = n(), .groups="drop") %>%
-  ungroup()
-
 # --Mortality and hospitlization
 # use old handmade database to fill in the blanks
 old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/master/dashboard/data/DatosMortalidad.csv") %>%
@@ -562,16 +491,11 @@ save(first_day, last_complete_day,
 ## save this as backup in case salud dashboard down
 save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
-save(tests_by_strata, file = file.path(rda_path, "tests_by_strata.rda"))
-
 save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 
 ## for use in wrangle-by-strata.R
 save(deaths, last_complete_day, file = file.path(rda_path, "deaths.rda"))
 
-## For backward compatibility keep only molecular
-all_tests <- all_tests %>%  filter(testType == "Molecular")
-saveRDS(all_tests, file = file.path(rda_path, "all_tests.rds"), compress = "xz")
 saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"), compress = "xz")
 
 
