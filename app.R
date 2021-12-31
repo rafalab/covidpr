@@ -159,7 +159,23 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                DT::dataTableOutput("municipios")),
                       
                       tabPanel("Mapa",
-                               plotOutput("mapa_positividad")),
+                               plotOutput("mapa_positividad"),
+                               h5("Rango para escala de coloers:"),
+                               numericInput("min_rate",
+                                            label = "Mínimo",
+                                            min = 0,
+                                            max = 100,
+                                            value = 3,
+                                            step = 1,
+                                            width = "10%"),
+                               numericInput("max_rate",
+                                            label = "Máximo",
+                                            min = 0,
+                                            max = 100,
+                                            value = 12,
+                                            step = 1, 
+                                            width = "10%")
+                      ),
                       
                       tabPanel("Por Edad",
                                radioButtons("by_age_version", 
@@ -596,7 +612,9 @@ server <- function(input, output, session) {
     plot_map(tests_by_strata,  
              start_date = input$range[1], 
              end_date = input$range[2],
-             type =  input$testType)
+             type =  input$testType,
+             min_rate = input$min_rate,
+             max_rate = input$max_rate)
   }
   )
   

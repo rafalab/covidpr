@@ -83,9 +83,15 @@ imputation_delay  <- 2
 alpha <- 0.05
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
-test_url <- "https://bioportal.salud.gov.pr/api/administration/reports/minimal-info-unique-tests?testType=Molecular&testType=Antigens"
+test_url <- "https://bioportal.salud.gov.pr/api/administration/reports/minimal-info-unique-tests"
 
-cases_url <- "https://bioportal.salud.gov.pr/api/administration/reports/orders/basic?testType=Molecular&testType=Antigens"
+test_url_molecular <- paste0(test_url,"?testType=Molecular")
+test_url_antigens <- paste0(test_url,"?testType=Antigens")
+
+cases_url <- "https://bioportal.salud.gov.pr/api/administration/reports/orders/basic"
+
+cases_url_molecular <-  paste0(cases_url,"?testType=Molecular")
+cases_url_antigens <- paste0(cases_url,"?testType=Antigens")
 
 get_bioportal <- function(url){
   jsonlite::fromJSON(
@@ -131,7 +137,10 @@ original_test_types <- c("Molecular", "Antigens")
 # Reading and wrangling test data from database ----------------------------------------------
 message("Reading test data.")
 
-all_tests <- get_bioportal(test_url)
+all_tests_molecular <- get_bioportal(test_url_molecular)
+all_tests_antigens <- get_bioportal(test_url_antigens)
+all_tests <- rbind(all_tests_molecular, all_tests_antigens)
+rm(all_tests_molecular, all_tests_antigens); gc(); gc()
 
 message("Processing test data.")
 
@@ -178,7 +187,10 @@ age_levels <-  paste(seq(0, 125, 5), "to", seq(4, 129, 5))
 
 message("Reading case data.")
 
-all_tests_with_id <- get_bioportal(cases_url)
+all_tests_with_id_molecular <- get_bioportal(cases_url_molecular)
+all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
+all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
+rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
 
 message("Processing case data.")
 

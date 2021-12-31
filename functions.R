@@ -434,13 +434,19 @@ plot_map <- function(tests_by_strata,
                      start_date = first_day, 
                      end_date = last_complete_day, 
                      type = "Molecular",
-                     min_rate = case_when(type == "Molecular" ~ 0.03, 
-                                          type == "Molecular+Antigens" ~ 0.01,
-                                          TRUE ~ 0.005),
-                     max_rate = case_when(type == "Molecular" ~ 0.12, 
-                                          type == "Molecular+Antigens" ~ 0.10,
-                                          TRUE ~ 0.08)){
-    
+                     min_rate = case_when(type == "Molecular" ~ 3, 
+                                          type == "Molecular+Antigens" ~ 1,
+                                          TRUE ~ 0.5),
+                     max_rate = case_when(type == "Molecular" ~ 12, 
+                                          type == "Molecular+Antigens" ~ 10,
+                                          TRUE ~ 8)){
+  min_rate <- min_rate/100
+  max_rate <- max_rate/100
+  
+  if(min_rate>=max_rate){
+    min_rate = 0.03
+    max_rate = 0.12
+  }  
   load("data/map.rda")
   ret <- tests_by_strata %>%
     filter(date >= start_date &  date <= end_date & testType == type) %>%
