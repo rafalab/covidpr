@@ -73,11 +73,11 @@ plot_positivity <- function(tests,
          caption = "Los puntos son el por ciento diarios, la curva el porciento semanal.") +
     scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))
     
-     
-  the_ylim <- dat %>%
-    summarize(lower = min(lower, na.rm = TRUE), upper = max(upper, na.rm = TRUE))
-  
-  the_ylim <- c(the_ylim$lower, the_ylim$upper)
+  the_ylim <- range(dat$rate, na.rm=TRUE)   
+  #the_ylim <- dat %>%
+  #  summarize(lower = min(lower, na.rm = TRUE), upper = max(upper, na.rm = TRUE))
+  #
+  #the_ylim <- c(the_ylim$lower, the_ylim$upper)
   
   if(yscale){
     ret <- ret + coord_cartesian(ylim = c(0, pmax(the_ylim[2], 0.15))) +
@@ -1727,7 +1727,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   make_values <- function(i){
     c(make_pct(pos$fit[i]), 
       make_pct(casespos$cases_rate[i]), 
-      round(cas$cases_week_avg[i]), 
+      make_pretty(round(cas$cases_week_avg[i])), 
       prettyNum(round(tes$people_total_week[i] / 7), big.mark = ","),
       prettyNum(round(hos$HospitCOV19[i]), big.mark = ","),
       dynamic_round(mor$mort_week_avg[i]),
@@ -1747,7 +1747,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   ## pick recent weekly average for caseswith highest value
   ## we do this because of incomplete data, the highest is likely the most accurate
   
-  casos <- paste(round(cas$cases_week_avg[1]),  arrows[change_cas[1] + 2]) ## keep same arrow as latest
+  casos <- paste(make_pretty(round(cas$cases_week_avg[1])),  arrows[change_cas[1] + 2]) ## keep same arrow as latest
   cas <- slice(cas, -1)
   change_cas <- change_cas[-1]
   
