@@ -160,7 +160,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                       
                       tabPanel("Mapa",
                                plotOutput("mapa_positividad"),
-                               h5("Rango para escala de coloers:"),
+                               h5("Rango para escala de colores:"),
                                numericInput("min_rate",
                                             label = "Mínimo",
                                             min = 0,
