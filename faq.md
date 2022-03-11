@@ -30,7 +30,7 @@ El dashboard estás dividido en un panel de control a la izquierda (arriba en pa
 
 El panel principal tiene 16 partes con una pestaña para cada una. 
 
-La página de inició, bajo la pestaña _RESUMEN_, provee un resumen general de la situación. Nos enfocamos en 6 indicadores: la tasa de positividad, los casos detectados por día, pruebas diarias, las hospitalizaciones, las muertes, y el por ciento de la población vacunada. Esta página se divide en tres partes: 1) niveles actuales, 2) niveles de hace una semana y niveles meta y 3) resúmenes gráfico. Debido a que hay retrasos en reportar resultados de pruebas y muertes, los niveles actuales no reportan casos, pruebas ni muertes. Más detalles sobre estas métricas se incluyen en la sección _¿Qué indicadores se incluyen y por qué?_ 
+La página de inició, bajo la pestaña _RESUMEN_, provee un resumen general de la situación. Nos enfocamos en 6 indicadores: la tasa de positividad, los casos detectados por día, pruebas diarias, las hospitalizaciones, las muertes, y el por cientos relacionados al proceso de vacunación. Esta página se divide en tres partes: 1) niveles actuales, 2) niveles de hace una semana y niveles meta y 3) resúmenes gráfico. Debido a que hay retrasos en reportar resultados de pruebas y muertes, los niveles actuales no reportan casos, pruebas ni muertes. Más detalles sobre estas métricas se incluyen en la sección _¿Qué indicadores se incluyen y por qué?_ 
 
 El panel de control te permite cambiar opciones de como ver los datos. Las opciones que pueden cambiar son las siguientes:
 
@@ -66,7 +66,7 @@ Los **datos de pruebas** viene directamente del BioPortal, una base de datos que
 
 Desafortunadamente, el Departamento de Salud no incluye los datos de mortalidad y hospitalizaciones en el BioPortal. Estos los tenemos que organizar a mano leyendo los informes oficiales de Salud todas las mañanas. Este trabajo lo hace María-Eglée Pérez del Departamento de Matemáticas, UPR-RP quien comparte los datos [aquí](https://raw.githubusercontent.com/rafalab/pr-covid/master/dashboard/data/DatosMortalidad.csv). Estos datos no están compartamentalizados por tipo de prueba. 
 
-Los  datos actualizados de vacunación son provistos por la CDC via [Our World in Data](https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/us_state_vaccinations.csv).
+<!--Los  datos actualizados de vacunación son provistos por la CDC via [Our World in Data](https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/us_state_vaccinations.csv).-->
 
 Datos de rezagos de muerte son provistos por 
 [@midnucas](https://twitter.com/midnucas) quien organiza una [tabla](https://raw.githubusercontent.com/sacundim/covid-19-puerto-rico/master/assets/data/cases/PuertoRico-bitemporal.csv) con los datos de todos los informes diarios de salud.
@@ -110,7 +110,7 @@ Promedio diario de personas que se hicieron la prueba esa semana. No mostramos l
 
 * Labs - Para el periodo de tiempo escogido en el panel de control, mostramos el número de pruebas hechas por casa laboratorio/hospital. Los que hacen pocas pruebas son agrupados en _Otros_.
 
-* Vacunas - En la gráfica mostramos el número dosis distribuidas, total de vacunas administradas, personas con por lo menos una dosis, y personas con ambas dosis, para cada día.
+<!--* Vacunas - En la gráfica mostramos el número dosis distribuidas, total de vacunas administradas, personas con por lo menos una dosis, y personas con ambas dosis, para cada día.-->
 
 </details>
 

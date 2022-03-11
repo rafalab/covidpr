@@ -579,7 +579,7 @@ make_pretty_table <- function(tab, the_caption = ""){
            cases_week_avg = make_pretty(round(cases_week_avg)),
            positives = make_pretty(positives),
            tests = make_pretty(tests),
-           hosp=make_pretty(hosp),
+           hosp=hosp,
            mort = mort,
            total_distributed = make_pretty(total_distributed), 
            total_vaccinations = make_pretty(total_vaccinations),
@@ -589,7 +589,7 @@ make_pretty_table <- function(tab, the_caption = ""){
            cases, cases_week_avg, 
            mort, icu, hosp,  tests,  
            tests_rate_daily, cases_rate_daily,
-           people_vaccinated, people_fully_vaccinated, total_vaccinations, total_distributed, 
+           #people_vaccinated, people_fully_vaccinated, total_vaccinations, total_distributed, 
            dummy) 
   
   col_names <- c("Fecha", 
@@ -603,8 +603,8 @@ make_pretty_table <- function(tab, the_caption = ""){
                  "Pruebas", 
                  "pruebas", 
                  "casos",
-                 "Vacunados", "Dosis completa", 
-                 "Vacunas", "Distribuidas", 
+            #     "Vacunados", "Dosis completa", 
+            #     "Vacunas", "Distribuidas", 
                  "dateorder")
   
   the_header <- htmltools::withTags(table(
@@ -618,8 +618,8 @@ make_pretty_table <- function(tab, the_caption = ""){
             th('Hospitalizaciones', colspan = 2, style = "border-bottom: none;text-align:center;"),
             th('', colspan = 1, style = "border-bottom: none;"),#,  style = "vertical-align: bottom;"),
             th('Tasas diarias', colspan = 2, style = "border-bottom: none;text-align:center;"),
-             th('Vacunas', colspan = 4, style = "text-align:center; border-bottom: none;"),
-            th('', colspan = 1, style = "border-bottom: none;")),
+       #      th('Vacunas', colspan = 4, style = "text-align:center; border-bottom: none;"),
+           th('', colspan = 1, style = "border-bottom: none;")),
           tr(
             lapply(col_names, th)
           )))
@@ -1500,6 +1500,8 @@ summary_by_age <- function(tests_by_age,
 ### this is used to make the table in the front page
 compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   
+  load(url("https://github.com/rafalab/vacunaspr/raw/main/rdas/tabs.rda"))
+  
   ## dates that we will put in the table
   ## they are 4 entries, 1 week apart
   ## lag_to_complete is a global var
@@ -1756,9 +1758,12 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   hos <- slice(hos, -1)
   change_hos <- change_hos[-1]
   
-  vacunas <- paste(make_pct(vac$pct_fully_vaccinated[1]),  no_arrow)
-  una_dosis <- paste(make_pct(vac$pct_one_dose[1]),  no_arrow)
-  
+  #vacunas <- paste(make_pct(vac$pct_fully_vaccinated[1]),  no_arrow)
+  #una_dosis <- paste(make_pct(vac$pct_one_dose[1]),  no_arrow)
+  una_dosis <- paste(make_pct(summary_tab%>%filter(names=="Personas con por lo menos 1 dosis") %>% pull(porciento)),  no_arrow)
+  vacunas <- paste(make_pct(summary_tab%>%filter(names=="Personas con serie primaria completa") %>% pull(porciento)),  no_arrow)
+  vacuna_al_dia <- paste(make_pct(summary_tab%>%filter(names=="Personas con vacunación al día") %>% pull(porciento)),  
+                  arrows_2[sign(summary_tab%>%filter(names=="Personas con vacunación al día") %>% pull(tasas)) + 2])
   vacs_per_day <- diff(vac$people_fully_vaccinated[c(1,3)])/diff(as.numeric(vac$date[c(1,3)]))
   
   #tmp <- pmax(0,round((pr_pop*0.7 - vac$people_fully_vaccinated[1]) / vacs_per_day))
@@ -1796,7 +1801,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   
   return(list(tab = tab, 
               positividad = positividad, casos_positividad = casos_positividad, 
-              casos = casos, hosp = hosp, una_dosis = una_dosis, vacunas = vacunas,
+              casos = casos, hosp = hosp, una_dosis = una_dosis, vacunas = vacunas, vacuna_al_dia = vacuna_al_dia,
               dias_hasta_meta_vacunas = dias_hasta_meta_vacunas))
   
 }

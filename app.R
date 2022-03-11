@@ -209,10 +209,10 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                DT::dataTableOutput("labs")),
                       
                       tabPanel("Vacunas", 
-                              HTML('<br><h4>Para más información visite el dashboard de vacunas:  
-                                   <a href="http://vacunas.covidpr.info/">http://vacunas.covidpr.info/</a></h4><hr>'),
-                               plotOutput("vaccines"),
-                               DT::dataTableOutput("vaccines_table")),
+                              HTML('<br><h4>Esta información ahora esta disponible en el dashboard de vacunas:  
+                                   <a href="http://vacunas.covidpr.info/">http://vacunas.covidpr.info/</a></h4><hr>')),
+                              # plotOutput("vaccines"),
+                               #DT::dataTableOutput("vaccines_table")),
                       
                       tabPanel("Viajeros",
                               
@@ -345,14 +345,15 @@ server <- function(input, output, session) {
       "<tr><td>Tasa de positividad (casos):</td><td align=\"right\">&emsp;", res()$casos_positividad, "</td></tr>", #, "&emsp;", 
       "<tr><td>Casos nuevos por día:</td><td align=\"right\">&emsp;", res()$casos, "</td></tr>",
       "<tr><td>Hospitalizaciones:</td><td align=\"right\">&emsp;", res()$hosp, "</td></tr>",
+      "<tr><td>% con vacunación al día:</td><td align=\"right\">&emsp;", res()$vacuna_al_dia, "</td></tr>",
       "<tr><td>% por lo menos 1 dosis:</td><td align=\"right\">&emsp;", res()$una_dosis, "</td></tr>",
-      "<tr><td>% población vacunada:</td><td align=\"right\">&emsp;", res()$vacunas, "</td></tr>",
-      "<tr><td>Días para alcanzar 70%:</td><td align=\"right\">&emsp;", res()$dias_hasta_meta_vacunas, "</td></tr></table>")
+      "<tr><td>% población vacunada:</td><td align=\"right\">&emsp;", res()$vacunas, "</td></tr></table>")
+      #"<tr><td>Días para alcanzar 70%:</td><td align=\"right\">&emsp;", res()$dias_hasta_meta_vacunas, "</td></tr></table>")
   })
   
   output$resumen_table <- DT::renderDataTable({
     ## Hard-wiring the test type.
-   compute_summary(tests, hosp_mort)$tab %>%
+    compute_summary(tests, hosp_mort)$tab[1:6,] %>%
       DT::datatable(class = 'white-space: nowrap',
                     rownames = FALSE,
                     escape = FALSE, 
@@ -414,11 +415,11 @@ server <- function(input, output, session) {
      "Tengan en cuenta que los fines de semana se hacen menos pruebas y por lo tanto se reportan menos casos y ",
      "que los datos de las pruebas toman ", lag_to_complete, " días en estar aproximadamente completos ",
      "(los casos están incompletos para días después de ", format(last_day, "%B %d). "),
-     "Los datos de <b>vacunas</b> incluyen cuatro medidas: ",
-     "el total de <b>vacunados</b> con por lo menos una dosis, ",
-     "el total de personas que han recibido la <b>dosis completa</b>, ",
-     "el total de <b>vacunas</b> admin<istradas y ",
-     "el total de vacunas <b>distribuidas</b>.",
+  #   "Los datos de <b>vacunas</b> incluyen cuatro medidas: ",
+  #   "el total de <b>vacunados</b> con por lo menos una dosis, ",
+  #   "el total de personas que han recibido la <b>dosis completa</b>, ",
+  #   "el total de <b>vacunas</b> admin<istradas y ",
+  #   "el total de vacunas <b>distribuidas</b>.",
      "<p> Para <b>descargar los datos</b> mostrados en esta tabla, haga clic en el botón de <em>Download</em> al final de la página.")
   
    make_pretty_table(ret, the_caption)
