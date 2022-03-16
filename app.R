@@ -248,14 +248,14 @@ server <- function(input, output, session) {
   load(file.path(rda_path,"data.rda"))
   last_day <- last_complete_day - days(lag_to_complete)
   
-  
   updateDateRangeInput(session, "range",
                        start = last_complete_day - days(89), 
                        end = last_complete_day,
                        min = first_day,
                        max = max(tests$date))
-
-   # -- This sets range to last two weeks
+  
+  
+  # -- This sets range to last two weeks
   observeEvent(input$weeks, {
     updateDateRangeInput(session, "range",
                          start = last_complete_day - days(6),

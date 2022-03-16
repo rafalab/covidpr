@@ -1,8 +1,8 @@
 # helpers
 make_pct <- function(x, digit = 1) ifelse(is.na(x), "", paste0(format(round(100*x, digit = digit), nsmall = digit), "%"))
 make_pretty <- function(x) prettyNum(replace_na(x, " "), big.mark = ",")
-get_ci_lower <- function(n, p, alpha = 0.05) qbinom(alpha/2, n, p) / n
-get_ci_upper <- function(n, p, alpha = 0.05) qbinom(1-alpha/2, n, p) / n
+get_ci_lower <- function(n, p, alpha = 0.05) qbinom(alpha/2, round(n), p) / round(n)
+get_ci_upper <- function(n, p, alpha = 0.05) qbinom(1-alpha/2, round(n), p) / round(n)
 make_pretty_ci <- function(p, lower, upper, nsmall = 1, bounds_nsmall = 1){
   floor_dec <- function(x, level=1) round(x - 5*10^(-level-1), level)
   ceiling_dec <- function(x, level=1) round(x + 5*10^(-level-1), level)
@@ -116,9 +116,8 @@ plot_icu <- function(hosp_mort,
     mutate(icu = CamasICU / (CamasICU + CamasICU_disp))
   
   if(yscale){
-    lim  <- c(0, 0.4)
-  } else
-  {
+    lim  <- c(0, 0.5)
+  } else {
     lim <- c(min(tmp$icu, na.rm = TRUE),
              pmax(max(tmp$icu, na.rm = TRUE), 
                   1/max(tmp$CamasICU + tmp$CamasICU_disp, na.rm=TRUE)))
@@ -169,7 +168,7 @@ plot_deaths <- function(hosp_mort,
       theme_bw()
   } else{
     
-    hosp_mort$mort_week_avg[hosp_mort$date > last_day] <- NA
+    #hosp_mort$mort_week_avg[hosp_mort$date > last_day] <- NA
     
     ret <- hosp_mort %>%
       filter(date >= start_date & date <= end_date) %>%
@@ -183,11 +182,11 @@ plot_deaths <- function(hosp_mort,
     if(yscale){
       ret <- ret +  
         geom_bar(aes(y = IncMueSalud), stat = "identity", width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg), color="black", size = 1.25)
+        geom_line(aes(y = mort_week_avg, lty = date > last_day), color="black", size = 1.25, show.legend = FALSE)
     } else{
       ret <- ret +  
         geom_point(aes(y = IncMueSalud), width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg), color="black", size = 1.25)
+        geom_line(aes(y = mort_week_avg, lty = date > last_day), color="black", size = 1.25)
     }
   }
   return(ret)
@@ -315,7 +314,7 @@ plot_cases <- function(cases,
         geom_point(color = "#FBBCB2") +
         geom_line(aes(y = cases_week_avg), color = "#CC523A", size = 1.25) 
     }
-    ret <- ret + theme(legend.position = "none")
+    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma)
   }
   return(ret)
 }
@@ -958,17 +957,19 @@ plot_fully_vaccinated <- function(hosp_mort,
       geom_point() +
       geom_line() +
       scale_x_date(date_labels = "%b %d") +#, breaks = breaks_width("days")) +
-      scale_y_continuous(labels = scales::percent) +
       ggtitle("Por ciento de la población vacunada con dosis completa") +
       ylab("Por ciento") +
       xlab("Fecha") +
       theme_bw() 
     
     if(yscale){
-      ret + 
-      geom_hline(yintercept = 0.7) + 
-      annotate("text", min(tmp$date) + days(2), 0.72, label = "Meta = 70% de la población") + 
-      ylim(c(0, max(0.7, max(tmp$people_fully_vaccinated / pr_pop))))
+      ret <- ret + 
+        geom_hline(yintercept = 0.7) + 
+        annotate("text", min(tmp$date) + days(2), 0.72, label = "Meta = 70% de la población") + 
+        scale_y_continuous(labels = scales::percent,
+                           limits = c(0, max(0.7, max(tmp$people_fully_vaccinated / pr_pop))))
+    } else{
+      ret <- ret +  scale_y_continuous(labels = scales::percent) 
     }
     return(ret)
 }
@@ -1500,7 +1501,7 @@ summary_by_age <- function(tests_by_age,
 ### this is used to make the table in the front page
 compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   
-  load(url("https://github.com/rafalab/vacunaspr/raw/main/rdas/tabs.rda"))
+  load(file.path(rda_path,"vacunas_summary_tab.rda"))
   
   ## dates that we will put in the table
   ## they are 4 entries, 1 week apart
@@ -1760,10 +1761,10 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   
   #vacunas <- paste(make_pct(vac$pct_fully_vaccinated[1]),  no_arrow)
   #una_dosis <- paste(make_pct(vac$pct_one_dose[1]),  no_arrow)
-  una_dosis <- paste(make_pct(summary_tab%>%filter(names=="Personas con por lo menos 1 dosis") %>% pull(porciento)),  no_arrow)
-  vacunas <- paste(make_pct(summary_tab%>%filter(names=="Personas con serie primaria completa") %>% pull(porciento)),  no_arrow)
-  vacuna_al_dia <- paste(make_pct(summary_tab%>%filter(names=="Personas con vacunación al día") %>% pull(porciento)),  
-                  arrows_2[sign(summary_tab%>%filter(names=="Personas con vacunación al día") %>% pull(tasas)) + 2])
+  una_dosis <- paste(make_pct(vacunas_summary_tab%>%filter(names=="Personas con por lo menos 1 dosis") %>% pull(porciento)),  no_arrow)
+  vacunas <- paste(make_pct(vacunas_summary_tab%>%filter(names=="Personas con serie primaria completa") %>% pull(porciento)),  no_arrow)
+  vacuna_al_dia <- paste(make_pct(vacunas_summary_tab%>%filter(names=="Personas con vacunación al día") %>% pull(porciento)),  
+                  arrows_2[sign(vacunas_summary_tab%>%filter(names=="Personas con vacunación al día") %>% pull(tasas)) + 2])
   vacs_per_day <- diff(vac$people_fully_vaccinated[c(1,3)])/diff(as.numeric(vac$date[c(1,3)]))
   
   #tmp <- pmax(0,round((pr_pop*0.7 - vac$people_fully_vaccinated[1]) / vacs_per_day))
