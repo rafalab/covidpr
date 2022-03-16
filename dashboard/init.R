@@ -12,7 +12,7 @@ source("functions.R")
 if(grepl("fermat|ask2me-phys", Sys.info()["nodename"])){
   rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
 } else{
-  rda_path <- "rdas"
+  rda_path <- "../rdas"
 }
 # -- Set locale
 Sys.setlocale("LC_TIME", "es_ES")
