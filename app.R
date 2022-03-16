@@ -347,7 +347,7 @@ server <- function(input, output, session) {
       "<tr><td>Hospitalizaciones:</td><td align=\"right\">&emsp;", res()$hosp, "</td></tr>",
       "<tr><td>% con vacunación al día:</td><td align=\"right\">&emsp;", res()$vacuna_al_dia, "</td></tr>",
       "<tr><td>% por lo menos 1 dosis:</td><td align=\"right\">&emsp;", res()$una_dosis, "</td></tr>",
-      "<tr><td>% población vacunada:</td><td align=\"right\">&emsp;", res()$vacunas, "</td></tr></table>")
+      "<tr><td>% con serie primaria completa:</td><td align=\"right\">&emsp;", res()$vacunas, "</td></tr></table>")
       #"<tr><td>Días para alcanzar 70%:</td><td align=\"right\">&emsp;", res()$dias_hasta_meta_vacunas, "</td></tr></table>")
   })
   
