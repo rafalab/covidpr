@@ -7,7 +7,8 @@ library(scales)
 source("functions.R")
 
 ## if on the server get the latest data
-if(grepl("fermat", Sys.info()["nodename"])){
+
+if(grepl("fermat|ask2me-phys", Sys.info()["nodename"])){
   rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
 } else{
   rda_path <- "rdas"
@@ -35,7 +36,7 @@ poblacion_municipios <- tibble(patientCity = names(pop), poblacion = pop) %>%
 
 load(file.path(rda_path,"data.rda"))
 
-lag_to_complete <- 3
+lag_to_complete <- 4
 last_day <- last_complete_day - days(lag_to_complete)
 
 

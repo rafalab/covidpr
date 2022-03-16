@@ -66,7 +66,7 @@ plot_positivity <- function(tests,
     ylab("Tasa de positividad") +
     xlab("Fecha") +
     theme_bw() +
-    geom_line(aes(date, fit, lty = date > last_day), color = "blue", size = 0.80, show.legend = FALSE) +
+    geom_line(aes(date, fit, linetype = date > last_day), color = "blue", size = 0.80, show.legend = FALSE) +
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.35, show.legend = FALSE) +
     annotate("label", x = end_date + add, y = the_label, label = make_pct(the_label)) +
     labs(title = the_title, subtitle = the_subtitle,
@@ -182,11 +182,11 @@ plot_deaths <- function(hosp_mort,
     if(yscale){
       ret <- ret +  
         geom_bar(aes(y = IncMueSalud), stat = "identity", width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg, lty = date > last_day), color="black", size = 1.25, show.legend = FALSE)
+        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", size = 1.25, show.legend = FALSE)
     } else{
       ret <- ret +  
         geom_point(aes(y = IncMueSalud), width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg, lty = date > last_day), color="black", size = 1.25)
+        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", size = 1.25)
     }
   }
   return(ret)
@@ -293,7 +293,7 @@ plot_cases <- function(cases,
     
     ret <- cases %>%
       filter(testType == type & date >= start_date & date <= end_date) %>%
-      ggplot(aes(date, cases, lty = date > last_day)) +
+      ggplot(aes(date, cases)) +
       ylab("Casos únicos") +
       xlab("Fecha") +
       labs(title = "Casos únicos", 
@@ -308,11 +308,11 @@ plot_cases <- function(cases,
     if(yscale){
       ret <- ret + 
         geom_bar(stat = "identity", fill = "#FBBCB2", width= 0.75) +
-        geom_line(aes(y = cases_week_avg), color = "#CC523A", size = 1.25) 
+        geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
     } else{
       ret <- ret + 
         geom_point(color = "#FBBCB2") +
-        geom_line(aes(y = cases_week_avg), color = "#CC523A", size = 1.25) 
+        geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
     }
     ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma)
   }
@@ -350,7 +350,8 @@ plot_test <- function(tests,
       filter(testType == type & date >= start_date & date <= end_date) %>%
       ggplot(aes(date, people_total)) +
       geom_bar(stat = "identity", width = 0.75, fill = "#D1D1E8") +
-      geom_line(aes(y = people_total_week / 7, lty = date > last_day), color = "#31347A", size = 1.25, show.legend = FALSE) +
+      geom_line(aes(y = people_total_week / 7, linetype = date > last_day), 
+                color = "#31347A", size = 1.25, show.legend = FALSE) +
       ylab("Pruebas") +
       xlab("Fecha") +
       labs(title = paste("Pruebas", 
@@ -382,7 +383,7 @@ plot_positivity_by_lab <- function(labs,
       ggplot(aes(date, fit)) + 
       geom_point(aes(y = positives/tests), alpha = 0.25) +
       geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.35) +
-      geom_line(aes(lty = date > last_day), col = "blue", show.legend = FALSE) +
+      geom_line(aes(linetype = date > last_day), col = "blue", show.legend = FALSE) +
       scale_x_date(date_labels = "%b", breaks = scales::breaks_width("1 month"))  +
       xlab("Fecha") +
       ylab("Tasa") +
@@ -1237,8 +1238,8 @@ summary_by_region <- function(tests_by_region,
                        list(className = 'dt-center', targets = c(1:(ncol(pretty_tab)-1))))))
   
   p <- dat %>% 
-    ggplot(aes(date, the_stat, color = region,  lty = date > last_day)) + 
-    geom_line(lwd = 1.25, alpha = 0.75) +
+    ggplot(aes(date, the_stat, color = region)) + 
+    geom_line(aes(linetype = date > last_day), lwd = 1.25, alpha = 0.75) +
     guides(linetype = "none") +
     xlab("Fecha") +
     ylab(var_title) +
@@ -1445,7 +1446,6 @@ summary_by_age <- function(tests_by_age,
       ggplot(aes(date, the_stat)) + 
       xlab("Fecha") +
       ylab(var_title) +
-      labs(color = "Edad") +
       labs(title = the_title, subtitle = the_subtitle) +
       scale_x_date(date_labels = "%b %d") +
       theme_bw() +
@@ -1470,16 +1470,16 @@ summary_by_age <- function(tests_by_age,
        } else{
         p <- p + 
           geom_bar(aes(y = daily_stat), stat = "identity", color = the_color_1, fill = the_color_1, width= 0.2, alpha =0.5, show.legend = FALSE) +
-          geom_line(aes(lty = date > last_day), color = the_color_2, show.legend = FALSE, size = 1.25) 
+          geom_line(aes(linetype = date > last_day), color = the_color_2, show.legend = FALSE, size = 1.25) 
       }
     } else{
       p <- p + 
-        geom_line(aes(lty = date > last_day), lwd = 1.25, show.legend = FALSE) 
+        geom_line(aes(linetype = date > last_day), lwd = 1.25, show.legend = FALSE) 
     }
   } else{
     p <- dat %>% 
-      ggplot(aes(date, the_stat, color = ageRange,  lty = date > last_day)) + 
-      geom_line(lwd = 1.25, alpha = 0.75) +
+      ggplot(aes(date, the_stat, color = ageRange)) + 
+      geom_line(aes(linetype = date > last_day), lwd = 1.25, alpha = 0.75) +
       guides(linetype = "none") +
       xlab("Fecha") +
       ylab(var_title) +

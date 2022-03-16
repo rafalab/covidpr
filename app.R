@@ -1,6 +1,5 @@
 # -- Set up
 source("init.R")
-
 library(shiny)
 library(shinythemes)
 
@@ -93,7 +92,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                br(),
                                htmlOutput("disclaimer"),
                                br(),
-                               #htmlOutput("table_title"),
+                               htmlOutput("table_title"),
                                DT::dataTableOutput("resumen_table"),
                                htmlOutput("table_caption"),
                                hr(),
@@ -106,10 +105,10 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                br(),
                                downloadButton("downloadTable", "Download",
                                               style = button_style)),
-                      
+
                       tabPanel("Positividad",
                                h4("Tasa de positividad"),
-                               radioButtons("pos_version", 
+                               radioButtons("pos_version",
                                             label = "",
                                             choices = list("Pruebas sobre pruebas" = "pruebas",
                                                            "Casos sobre personas" = "casos"),
@@ -119,31 +118,31 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                hr(),
                                h5("Explicación sobre las diferentes definiciones de Tasa de Positividad"),
                                DT::dataTableOutput("tabla_positividad")),
-                      
+
                       tabPanel("Hospitalizaciones",
                                plotOutput("hospitalizaciones"),
                                hr(),
                                plotOutput("hospitalizaciones_ped")),
-                      
+
                       tabPanel("ICU",
                                plotOutput("icu")),
-                      
+
                       tabPanel("Muertes",
                                plotOutput("muertes")),
-                      
+
                       tabPanel("Pruebas",
                                plotOutput("numero_pruebas"),
                                hr(),
                                plotOutput("positividad_por_lab"),
                                hr(),
                                plotOutput("numero_pruebas_por_lab")),
-                      
-                      
+
+
                       tabPanel("Casos",
                                plotOutput("casos")),
-                      
+
                       tabPanel("Regiones",
-                               radioButtons("by_region_version", 
+                               radioButtons("by_region_version",
                                             label = "",
                                             choices = list("Tasa de positividad (pruebas)" = "tp_pruebas",
                                                            "Tasa de positividad (casos)" = "tp_casos",
@@ -154,10 +153,10 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                             inline = TRUE),
                                plotOutput("plot_by_region"),
                                DT::dataTableOutput("table_by_region")),
-                      
+
                       tabPanel("Municipios",
                                DT::dataTableOutput("municipios")),
-                      
+
                       tabPanel("Mapa",
                                plotOutput("mapa_positividad"),
                                h5("Rango para escala de colores:"),
@@ -173,12 +172,12 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                             min = 0,
                                             max = 100,
                                             value = 12,
-                                            step = 1, 
+                                            step = 1,
                                             width = "10%")
                       ),
-                      
+
                       tabPanel("Por Edad",
-                               radioButtons("by_age_version", 
+                               radioButtons("by_age_version",
                                             label = "",
                                             choices = list("Tasa de positividad (pruebas)" = "tp_pruebas",
                                                            "Tasa de positividad (casos)" = "tp_casos",
@@ -190,7 +189,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                                            "Muertes por 100,000" = "deaths_per"),
                                             selected = "tp_pruebas",
                                             inline = TRUE),
-                               radioButtons("by_age_facet", 
+                               radioButtons("by_age_facet",
                                             label = "",
                                             choices = list("Una gráfica por edad" = TRUE,
                                                            "Juntos en una gráfica" = FALSE),
@@ -198,25 +197,25 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                             inline = TRUE),
                                plotOutput("plot_by_age"),
                                DT::dataTableOutput("table_by_age")),
-                      
+
                       tabPanel("Rezago",
                               plotOutput("rezago")),
-                      
+
                       tabPanel("Labs",
                                br(),
                                downloadButton("downloadLabData", "Download",
                                               style = button_style),
                                DT::dataTableOutput("labs")),
-                      
-                      tabPanel("Vacunas", 
-                              HTML('<br><h4>Esta información ahora esta disponible en el dashboard de vacunas:  
+
+                      tabPanel("Vacunas",
+                              HTML('<br><h4>Esta información ahora esta disponible en el dashboard de vacunas:
                                    <a href="http://vacunas.covidpr.info/">http://vacunas.covidpr.info/</a></h4><hr>')),
                               # plotOutput("vaccines"),
                                #DT::dataTableOutput("vaccines_table")),
-                      
+
                       tabPanel("Viajeros",
-                              
-                               radioButtons("travelers_version", 
+
+                               radioButtons("travelers_version",
                                             label = "",
                                             choices = list("Número de viajeros" = "totals",
                                                            "Por ciento con prueba negativa" = "percent",
@@ -226,17 +225,17 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                plotOutput("travelers"),
                                h5("El Departamento de Salud cambió la forma de manejar estos datos en mayo del 2021 y se está trabajando para actualizar datos históricos entre mayo y julio."),
                                DT::dataTableOutput("table_travelers")),
-                      
+
                       # tabPanel("Escuelas",
                       #          h2("Escuelas con casos activos"),
                       #          #h4("En esta pestaña estáremos publicando datos sobre contagios y exposiciones en las escuelas de Puerto Rico. En colaboración con ",
                       #           #  "el Departamento de Salud estamos preparando resúmenes y explicaciones útiles para el público.")),
                       #          htmlOutput("escuelas_tab"),
                       #          plotOutput("escuelas_plot")),
-                      # 
+                      #
                       tabPanel("FAQ",
                                includeMarkdown("faq.md"))
-                      
+
                     ), width = 9
                   ), position = "left"),
                 hr(),
