@@ -349,7 +349,7 @@ if(FALSE){
 
 # --Mortality and hospitlization
 # use old handmade database to fill in the blanks
-old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/master/dashboard/data/DatosMortalidad.csv") %>%
+old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/main/dashboard/data/DatosMortalidad.csv") %>%
   mutate(date = mdy(Fecha)) %>%
   filter(date >= first_day) %>%
   arrange(date) %>%

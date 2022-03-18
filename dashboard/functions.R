@@ -1,6 +1,6 @@
 # helpers
 make_pct <- function(x, digit = 1) ifelse(is.na(x), "", paste0(format(round(100*x, digit = digit), nsmall = digit), "%"))
-make_pretty <- function(x) prettyNum(replace_na(x, " "), big.mark = ",")
+make_pretty <- function(x) prettyNum(replace_na(as.character(x), " "), big.mark = ",")
 get_ci_lower <- function(n, p, alpha = 0.05) qbinom(alpha/2, round(n), p) / round(n)
 get_ci_upper <- function(n, p, alpha = 0.05) qbinom(1-alpha/2, round(n), p) / round(n)
 make_pretty_ci <- function(p, lower, upper, nsmall = 1, bounds_nsmall = 1){
@@ -1724,7 +1724,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
         arrows_2[change_tes[i]+2],
         arrows[change_hos[i]+2],
         arrows[change_mor[i]+2],
-        NA),
+        as.character(NA)),
       no_arrow)
   }
   

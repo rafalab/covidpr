@@ -185,7 +185,7 @@ negative_cases_by_region <- left_join(negative_cases_by_region, fits, by = c("te
 tests_by_region <- left_join(tests_by_region, negative_cases_by_region, by = c("testType", "region", "date"))
 
 ## add regions populations
-pop_by_region <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/main/data/poblacion-region.csv",
+pop_by_region <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/main/dashboard/data/poblacion-region.csv",
                           skip = 1, col_names = c("rn", "region", "poblacion")) %>% 
   select(region, poblacion) %>%
   mutate(region = factor(region, levels = region[order(poblacion, decreasing = TRUE)]))
@@ -306,7 +306,7 @@ negative_cases_by_age <- left_join(negative_cases_by_age, fits, by = c("testType
 tests_by_age <- left_join(tests_by_age, negative_cases_by_age, by = c("testType", "ageRange", "date"))
 
 ## add age populations
-pop_by_age <- read_csv("https://raw.githubusercontent.com/rafalab/pr-covid/master/dashboard/data/poblacion-por-edad.csv") %>%
+pop_by_age <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/main/dashboard/data/poblacion-por-edad.csv") %>%
   rename(ageRange = agegroup, poblacion = population) %>%
   mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
          age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%

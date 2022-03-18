@@ -4,6 +4,7 @@ library(lubridate)
 library(gridExtra)
 library(scales)
 library(mapproj)
+library(markdown)
 #library(sf)
 source("functions.R")
 
