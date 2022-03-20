@@ -49,7 +49,7 @@ library(splines)
 
 ## if on server, save with full path
 ## if not on server, save to home directory
-if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
+if(grepl("fermat|ask2me-phys", Sys.info()["nodename"])){
   rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
 } else{
   rda_path <- "rdas"

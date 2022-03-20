@@ -1,4 +1,4 @@
-if(Sys.info()["nodename"] == "fermat.dfci.harvard.edu"){
+if(grepl("fermat|ask2me-phys", Sys.info()["nodename"])){
   rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
 } else{
   rda_path <- "rdas"
