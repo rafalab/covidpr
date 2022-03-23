@@ -186,7 +186,7 @@ plot_deaths <- function(hosp_mort,
     } else{
       ret <- ret +  
         geom_point(aes(y = IncMueSalud), width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", size = 1.25)
+        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", size = 1.25, show.legend = FALSE)
     }
   }
   return(ret)
