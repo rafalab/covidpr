@@ -295,7 +295,7 @@ plot_cases <- function(cases,
     
     ret <- cases %>%
       filter(testType == type & date >= start_date & date <= end_date) %>%
-      ggplot(aes(date, cases)) +
+      ggplot(aes(x = date)) +
       ylab("Casos únicos") +
       xlab("Fecha") +
       labs(title = "Casos únicos", 
@@ -309,14 +309,14 @@ plot_cases <- function(cases,
     
     if(yscale){
       ret <- ret + 
-        geom_bar(stat = "identity", fill = "#FBBCB2", width= 0.75) +
+        geom_bar(aes(y = cases), stat = "identity", fill = "#FBBCB2", width= 0.75) +
         geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
     } else{
       ret <- ret + 
-        geom_point(color = "#FBBCB2") +
+        #geom_point(color = "#FBBCB2") +
         geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
     }
-    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma, , trans = the_transf)
+    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma, trans = the_transf)
   }
   return(ret)
 }
