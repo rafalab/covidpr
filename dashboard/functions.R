@@ -268,7 +268,9 @@ plot_cases <- function(cases,
                        end_date = last_complete_day, 
                        type = "Molecular", 
                        cumm = FALSE,
-                       yscale = TRUE){
+                       yscale = TRUE,
+                       log.scale = FALSE){
+  if(log.scale){ yscale <- FALSE; the_transf <- "log2"} else the_transf = "identity"
   if(cumm){
     ret <- cases %>% 
       filter(testType == type) %>%
@@ -284,7 +286,7 @@ plot_cases <- function(cases,
                                type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) +
       ylab("Casos") +
       xlab("Fecha") +
-      scale_y_continuous(labels = scales::comma) +
+      scale_y_continuous(labels = scales::comma, trans = the_transf) +
       scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
       theme_bw()
   } else{
@@ -314,7 +316,7 @@ plot_cases <- function(cases,
         geom_point(color = "#FBBCB2") +
         geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
     }
-    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma)
+    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma, , trans = the_transf)
   }
   return(ret)
 }

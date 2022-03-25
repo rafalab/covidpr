@@ -139,6 +139,12 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
 
 
                       tabPanel("Casos",
+                               radioButtons("cases_log",
+                                            label = "Escala:",
+                                            choices = list("Lineal" = FALSE,
+                                                           "Logarítmica" = TRUE),
+                                            selected = FALSE,
+                                            inline = TRUE),
                                plotOutput("casos")),
 
                       tabPanel("Regiones",
@@ -543,7 +549,8 @@ server <- function(input, output, session) {
                end_date = input$range[2], 
                type =  input$testType,
                cumm = as.logical(input$acumulativo), 
-               yscale = as.logical(input$yscale))
+               yscale = as.logical(input$yscale),
+               log.scale = as.logical(input$cases_log))
   )
   
 
