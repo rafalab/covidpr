@@ -316,7 +316,7 @@ plot_cases <- function(cases,
         #geom_point(color = "#FBBCB2") +
         geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
     }
-    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma, trans = the_transf)
+    ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma, trans = the_transf, n.breaks  = 10)
   }
   return(ret)
 }
