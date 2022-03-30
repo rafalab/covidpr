@@ -1570,12 +1570,12 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   
   ## get overdisepersion, last day is a global variable defined in init
   ## we assume cases are Possion with the precalculated trend an offset.
-  phi <- tests %>% filter(date >= make_date(2020, 7, 1) & 
-                            date <= make_date(2020, 11, 2) & ## avoid election thanksgiving and xmas
+  phi <- tests %>% filter(date >= make_date(2021, 7, 1) & 
+                            date <= make_date(2021, 11, 15) & ## avoid election thanksgiving and xmas
                             date <= last_day &
                             testType == "Molecular+Antigens") %>%
-    mutate(wd = factor(wday(date)), week = factor(round_date(date, "week"))) %>%
-    glm(cases ~ wd + week, data = ., family = quasipoisson) %>%
+    mutate(wd = factor(wday(date)), x = as.numeric(date), week = factor(round_date(date, "week"))) %>%
+    glm(cases ~ wd + splines::ns(x, df=16), data = ., family = quasipoisson) %>%
     summary()  %>%
     .$dispersion
   
