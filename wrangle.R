@@ -359,7 +359,7 @@ old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/mai
 #   replace_na(list(CamasICU_disp = icu_beds))
 
 httr::set_config(httr::config(ssl_verifypeer = 0L, ssl_verifyhost = 0L))
-url <- "https://covid19datos.salud.pr.gov/estadisticas_v2/download/data/sistemas_salud/completo"
+url <- "https://covid19datos.salud.gov.pr/estadisticas_v2/download/data/sistemas_salud/completo"
 hosp_mort <- try({
   read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
     mutate(date = as_date(FE_REPORTE)) %>%
