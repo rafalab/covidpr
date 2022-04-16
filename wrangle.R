@@ -82,7 +82,7 @@ imputation_delay  <- 2
 alpha <- 0.05
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
-cases_url <- "https://bioportal.salud.gov.pr/api/administration/reports/orders/basic"
+cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
 
 cases_url_molecular <-  paste0(cases_url,"?testType=Molecular")
 cases_url_antigens <- paste0(cases_url,"?testType=Antigens")
@@ -359,7 +359,7 @@ old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/mai
 #   replace_na(list(CamasICU_disp = icu_beds))
 
 httr::set_config(httr::config(ssl_verifypeer = 0L, ssl_verifyhost = 0L))
-url <- "https://covid19datos.salud.gov.pr/estadisticas_v2/download/data/sistemas_salud/completo"
+url <- "https://covid19datos.salud.pr.gov/estadisticas_v2/download/data/sistemas_salud/completo"
 hosp_mort <- try({
   read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
     mutate(date = as_date(FE_REPORTE)) %>%
@@ -445,7 +445,7 @@ age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
 
 message("Computing Deaths")
 
-url <- "https://bioportal.salud.gov.pr/api/administration/reports/deaths/summary"
+url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
 
 deaths <- jsonlite::fromJSON(url) %>%
   mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%

@@ -34,7 +34,7 @@ alpha <- 0.05
 
 # Computing positivity rate by lab ----------------------------------------
 
-url <- "https://bioportal.salud.gov.pr/api/administration/reports/tests-by-collected-date-and-entity"
+url <- "https://bioportal.salud.pr.gov/api/administration/reports/tests-by-collected-date-and-entity"
 
 message("Reading lab data.")
 

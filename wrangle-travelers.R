@@ -23,7 +23,7 @@ alpha <- 0.05
 
 message("Computing traveler statistics.")
 
-url <- "https://BioPortal.salud.gov.pr/api/administration/reports/travels/total-forms-by-reported-arrival-date"
+url <- "https://BioPortal.salud.pr.gov/api/administration/reports/travels/total-forms-by-reported-arrival-date"
 
 travelers <- jsonlite::fromJSON(url) %>%
   mutate(date = mdy(date)) %>%
