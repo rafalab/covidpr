@@ -43,11 +43,11 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                     br(), br(),
                     radioButtons("testType", 
                                  label = "Tipo de prueba",
-                                 choices = list("Molecular" = "Molecular",
-                                                "Molecular + Antígeno" = "Molecular+Antigens",
+                                 choices = list("Molecular + Antígeno" = "Molecular+Antigens",
+                                                "Molecular" = "Molecular",
                                                 "Antígeno" = "Antigens"),
                                               #  "Serológica" = "Serological"),
-                                 selected = "Molecular"),
+                                 selected = "Molecular+Antigens"),
                     radioButtons("acumulativo", 
                                  label = "Tipo de gráfico",
                                  choices = list("Diario" = FALSE,
@@ -251,28 +251,29 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
 server <- function(input, output, session) {
   
   load(file.path(rda_path,"data.rda"))
+  
   last_day <- last_complete_day - days(lag_to_complete)
   
   updateDateRangeInput(session, "range",
-                       start = last_complete_day - days(89), 
-                       end = last_complete_day,
+                       start =  max(tests$date) - days(89), 
+                       end =  max(tests$date),
                        min = first_day,
                        max = max(tests$date))
   
   
-  # -- This sets range to last two weeks
+  # -- This sets range to last week
   observeEvent(input$weeks, {
     updateDateRangeInput(session, "range",
-                         start = last_complete_day - days(6),
-                         end   = last_complete_day)
+                         start = max(tests$date) - days(6),
+                         end   = max(tests$date))
   })
   
   
   # -- This sets range to last 90 days (default)
   observeEvent(input$months, {
     updateDateRangeInput(session, "range",
-                         start = last_complete_day - days(89),
-                         end   = last_complete_day)
+                         start = max(tests$date) - days(89),
+                         end   = max(tests$date))
   })
   
   # -- This sets range to last two weeks

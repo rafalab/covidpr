@@ -74,11 +74,14 @@ all_tests <- all_tests %>%
          patientCity    = ifelse(patientCity == "Rio Grande", "Río Grande", patientCity),
          patientCity    = factor(patientCity),
          result         = tolower(result),
-         result         = case_when(grepl("influenza", result) ~ "other",
-                                    grepl("positive", result) ~ "positive",
-                                    grepl("negative", result) ~ "negative",
-                                    result == "not detected" ~ "negative",
-                                    TRUE ~ "other")) %>%
+         result         = case_when( 
+           (grepl("covid", result) | grepl("sars-cov-2", result)) &
+             grepl("positive", result) ~ "positive",
+           grepl("influenza", result) ~ "other",
+           grepl("positive", result) ~ "positive",
+           grepl("negative", result) ~ "negative",
+           result == "not detected" ~ "negative",
+           TRUE ~ "other")) %>%
   arrange(reportedDate, collectedDate) %>%
   filter(testType %in% test_types)
 

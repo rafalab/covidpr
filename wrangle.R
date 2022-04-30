@@ -156,7 +156,10 @@ all_tests_with_id <- all_tests_with_id %>%
          region = replace_na(region, "No reportada"),
          region = factor(region),
          result = tolower(result),
-         result = case_when(grepl("influenza", result) ~ "other",
+         result = case_when( 
+           (grepl("covid", result) | grepl("sars-cov-2", result)) &
+             grepl("positive", result) ~ "positive",
+           grepl("influenza", result) ~ "other",
                             grepl("positive", result) ~ "positive",
                             grepl("negative", result) ~ "negative",
                             result == "not detected" ~ "negative",
