@@ -1,8 +1,9 @@
 # helpers
+the_alpha <- 0.05
 make_pct <- function(x, digit = 1) ifelse(is.na(x), "", paste0(format(round(100*x, digit = digit), nsmall = digit), "%"))
 make_pretty <- function(x) prettyNum(replace_na(as.character(x), " "), big.mark = ",")
-get_ci_lower <- function(n, p, alpha = 0.05) qbinom(alpha/2, round(n), p) / round(n)
-get_ci_upper <- function(n, p, alpha = 0.05) qbinom(1-alpha/2, round(n), p) / round(n)
+get_ci_lower <- function(n, p, alpha = the_alpha) qbinom(alpha/2, round(n), p) / round(n)
+get_ci_upper <- function(n, p, alpha = the_alpha) qbinom(1-alpha/2, round(n), p) / round(n)
 make_pretty_ci <- function(p, lower, upper, nsmall = 1, bounds_nsmall = 1){
   floor_dec <- function(x, level=1) round(x - 5*10^(-level-1), level)
   ceiling_dec <- function(x, level=1) round(x + 5*10^(-level-1), level)
@@ -1501,7 +1502,7 @@ summary_by_age <- function(tests_by_age,
 
 ###
 ### this is used to make the table in the front page
-compute_summary <- function(tests, hosp_mort, day = last_complete_day){
+compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = the_alpha){
   
   load(file.path(rda_path,"vacunas_summary_tab.rda"))
   
@@ -1531,7 +1532,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
     p0 <- pos$fit[i+1]
     d <- p1 - p0
     se <- sqrt(p1*(1-p1) / pos$people_total_week[i] + p0*(1-p0) / pos$people_total_week[i+1])
-    signif <- abs(d/se) > qnorm(0.975)
+    signif <- abs(d/se) > qnorm(1-alpha/2)
     sign(pos$fit[i] - pos$fit[i+1]) * signif 
   })
   
@@ -1543,7 +1544,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
     d <- p1 - p0
     se <- sqrt(p1*(1-p1) / casespos$cases_plus_negatives[i] + 
                  p0*(1-p0) / casespos$cases_plus_negatives[i+1])
-    signif <- abs(d/se) > qnorm(0.975)
+    signif <- abs(d/se) > qnorm(1-alpha/2)
     sign(casespos$cases_rate[i] - casespos$cases_rate[i+1]) * signif 
   })
   
@@ -1584,7 +1585,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   change_cas <- sapply(c(1, 3:(nrow(cas)-1)), function(i){
     d <- cas$cases_week_avg[i] - cas$cases_week_avg[i+1]
     se <- sqrt((phi*cas$cases_week_avg[i] + phi*cas$cases_week_avg[i+1])/7)
-    signif <- abs(d/se) > qnorm(0.975)
+    signif <- abs(d/se) > qnorm(1-alpha/2)
     sign(d) * signif 
   })
   
@@ -1611,7 +1612,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   change_tes <- sapply(1:(nrow(tes)-1), function(i){
     d <- (tes$people_total_week[i] - tes$people_total_week[i+1]) / 7
     se <- sqrt((phi*tes$people_total_week[i] + phi*tes$people_total_week[i+1]))/7
-    signif <- abs(d/se) > qnorm(0.975)
+    signif <- abs(d/se) > qnorm(1-alpha/2)
     sign(d) * signif 
   })
   
@@ -1664,7 +1665,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
     ## because correlation is positive, the SE can't be smaller than the one obtined assuming IID
     se <- pmax(se, sqrt((phi*hos$hosp_week_avg[i] + phi*hos$hosp_week_avg[i+1])/7))
     
-    signif <- abs(d/se) > qnorm(0.975)
+    signif <- abs(d/se) > qnorm(1-alpha/2)
     
     sign(d) * signif 
   })
@@ -1682,7 +1683,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day){
   change_mor <- sapply(1:(nrow(mor)-1), function(i){
     d <- mor$mort_week_avg[i] - mor$mort_week_avg[i+1]
     se <- sqrt((mor$mort_week_avg[i] + mor$mort_week_avg[i+1])/7)
-    signif <- abs(d/se) > qnorm(0.975)
+    signif <- abs(d/se) > qnorm(1-alpha/2)
     sign(d) * signif 
   })
   
