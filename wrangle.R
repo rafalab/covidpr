@@ -448,6 +448,17 @@ age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
 
 message("Computing Deaths")
 
+url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
+
+bioportal_deaths <- jsonlite::fromJSON(url) %>%
+  mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
+  mutate(date = if_else(date < first_day | date > today(), 
+                        as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
+                        date)) %>%
+  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
+         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
+  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
+  mutate(ageRange = factor(ageRange, levels = age_levels)) 
 
 ## replace the death data with latest from dashboard
 
@@ -464,18 +475,7 @@ deaths <- try({
 
 if(class(deaths)[1] == "try-error"){
   ## if no dashboard data replace the death data with BioPortal data 
-  
-  url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
-  
-  deaths <- jsonlite::fromJSON(url) %>%
-    mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
-    mutate(date = if_else(date < first_day | date > today(), 
-                          as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
-                          date)) %>%
-    mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-           age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-    mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-    mutate(ageRange = factor(ageRange, levels = age_levels)) 
+  deaths <- bioportal_deaths
 }
 
 hosp_mort <- deaths %>%
@@ -491,7 +491,7 @@ hosp_mort <- deaths %>%
 
 ## Rezagos muerte
 
-rezago_mort <- deaths %>% 
+rezago_mort <- bioportal_deaths %>% 
   filter(!is.na(date)) %>%
   mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
   arrange(date, bulletin_date) %>%
