@@ -219,18 +219,18 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                               # plotOutput("vaccines"),
                                #DT::dataTableOutput("vaccines_table")),
 
-                      tabPanel("Viajeros",
-
-                               radioButtons("travelers_version",
-                                            label = "",
-                                            choices = list("Número de viajeros" = "totals",
-                                                           "Por ciento con prueba negativa" = "percent",
-                                                           "Vacunados" = "vax"),
-                                            selected = "totals",
-                                            inline = TRUE),
-                               plotOutput("travelers"),
-                               h5("El Departamento de Salud cambió la forma de manejar estos datos en mayo del 2021 y se está trabajando para actualizar datos históricos entre mayo y julio."),
-                               DT::dataTableOutput("table_travelers")),
+                      # tabPanel("Viajeros",
+                      # 
+                      #          radioButtons("travelers_version",
+                      #                       label = "",
+                      #                       choices = list("Número de viajeros" = "totals",
+                      #                                      "Por ciento con prueba negativa" = "percent",
+                      #                                      "Vacunados" = "vax"),
+                      #                       selected = "totals",
+                      #                       inline = TRUE),
+                      #          plotOutput("travelers"),
+                      #          h5("El Departamento de Salud cambió la forma de manejar estos datos en mayo del 2021 y se está trabajando para actualizar datos históricos entre mayo y julio."),
+                      #          DT::dataTableOutput("table_travelers")),
 
                       # tabPanel("Escuelas",
                       #          h2("Escuelas con casos activos"),
@@ -285,7 +285,8 @@ server <- function(input, output, session) {
   
   ## get date and time of latest update
   output$stamp = renderUI({
-    HTML(paste("Actualización:<br>", format(the_stamp,  usetz = TRUE))) 
+    HTML(paste("Actualización:<br>", format(the_stamp,  usetz = TRUE),
+               "<br>Pruebas añadidas:<br>", added_records)) 
   })
   
 

@@ -186,6 +186,12 @@ Pueden usar las gráficas generadas para cualquier cosa. No hace falta, pero si 
 
 </details>
 
+<details><summary>¿Qué paso con la pestaña de los viajeros? </summary>
+
+Salud dejó de compartir esos datos sin explicación. 
+
+</details>
+
 <details><summary>¿Qué hago si tengo más preguntas?</summary>
 
 Pueden hacer preguntas por Twitter: [@rafalab](https://twitter.com/rafalab)
