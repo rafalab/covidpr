@@ -74,18 +74,36 @@ last_complete_day <- today() - 1
 
 the_years <- seq(2020, year(today()))
 
-age_levels <-  c("0 to 9", "10 to 19", "20 to 29", "30 to 39", "40 to 49", "50 to 59", "60 to 69", 
-                 "70 to 79", "80 to 89", "90 to 99", "100 to 109", "110 to 119", "120 to 129")
+age_levels <-  paste(seq(0, 125, 5), "to", seq(4, 129, 5))
 
 imputation_delay  <- 2
 
 alpha <- 0.05
 
+## Load latest data
+prev_all_tests_with_id <- readRDS(file = file.path(rda_path, "all_tests_with_id.rds"))
+
+molecular_last_download <- filter(prev_all_tests_with_id, testType == "Molecular") %>%
+  pull(resultCreatedAt) %>% max() %>% with_tz(tzone = "GMT") %>%
+  str_replace(" ", "T") %>%
+  paste0("Z")
+
+antigen_last_download <- filter(prev_all_tests_with_id, testType == "Antigens") %>%
+  pull(resultCreatedAt) %>% max() %>% with_tz(tzone = "GMT") %>%
+  str_replace(" ", "T") %>%
+  paste0("Z")
+
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
 cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
 
-cases_url_molecular <-  paste0(cases_url,"?testType=Molecular")
-cases_url_antigens <- paste0(cases_url,"?testType=Antigens")
+cases_url_molecular <-  paste0(cases_url, 
+                               "?testType=Molecular", 
+                               "&createdAtStartDate=",
+                               molecular_last_download)
+cases_url_antigens <- paste0(cases_url, 
+                             "?testType=Antigens",
+                             "&createdAtStartDate=",
+                             antigen_last_download)
 
 get_bioportal <- function(url){
   jsonlite::fromJSON(
@@ -129,8 +147,6 @@ test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 original_test_types <- c("Molecular", "Antigens")
 
 # Reading and wrangling cases data from database ---------------------------
-age_levels <-  paste(seq(0, 125, 5), "to", seq(4, 129, 5))
-
 message("Reading case data.")
 
 all_tests_with_id_molecular <- get_bioportal(cases_url_molecular)
@@ -183,6 +199,13 @@ if(FALSE){
     filter(year(date) %in% the_years & date <= today()) %>%
     arrange(date, reportedDate)
 }
+
+## remove the replicates
+all_tests_with_id <- union(prev_all_tests_with_id, all_tests_with_id) %>% arrange(date, reportedDate)
+
+added_records <- pmax(nrow(all_tests_with_id) - nrow(prev_all_tests_with_id), 0)
+
+if(added_records>0){
 
 # -- Computing observed positivity rate
 ## adding a new test type that combines molecular and antigens
@@ -350,6 +373,8 @@ if(FALSE){
   
 }
 
+} else{ load(file.path(rda_path, "data.rda"))} ## if no new records, tests or cases not created so need to load
+
 # --Mortality and hospitlization
 # use old handmade database to fill in the blanks
 old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/main/dashboard/data/DatosMortalidad.csv") %>%
@@ -502,7 +527,8 @@ rezago_mort <- bioportal_deaths %>%
 
 ## define date and time of latest download
 the_stamp <- now(tzone="America/Puerto_Rico")
-save(first_day, last_complete_day,
+  
+save(first_day, last_complete_day, added_records,
      alpha, the_stamp, 
      tests, cases,
      hosp_mort, pr_pop, 
@@ -516,7 +542,7 @@ save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 ## for use in wrangle-by-strata.R
 save(deaths, last_complete_day, file = file.path(rda_path, "deaths.rda"))
 
-saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"), compress = "xz")
+saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"))
 
 
 
