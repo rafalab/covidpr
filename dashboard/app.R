@@ -286,11 +286,10 @@ server <- function(input, output, session) {
   ## get date and time of latest update
   output$stamp = renderUI({
     HTML(paste("Actualización:<br>", format(the_stamp,  usetz = TRUE),
-               "<br>Pruebas añadidas:<br>", added_records)) 
+               "<br>Pruebas añadidas:", make_pretty(added_records)))
   })
   
-
-  # Nivel de riesgo ---------------------------------------------------------
+# Nivel de riesgo ---------------------------------------------------------
 
 #   output$riesgo <-  renderText({
 #     riesgo <- compute_summary(tests, hosp_mort, cases, type = input$testType)$riesgo

@@ -188,7 +188,7 @@ Pueden usar las gráficas generadas para cualquier cosa. No hace falta, pero si 
 
 <details><summary>¿Qué paso con la pestaña de los viajeros? </summary>
 
-Salud dejó de compartir esos datos sin explicación. 
+El Departamento de Salud dejó de compartir esos datos sin explicación. 
 
 </details>
 
