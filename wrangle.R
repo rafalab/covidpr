@@ -81,6 +81,8 @@ imputation_delay  <- 2
 alpha <- 0.05
 
 ## Load latest data
+message("Loading previous dataset.")
+
 prev_all_tests_with_id <- readRDS(file = file.path(rda_path, "all_tests_with_id.rds"))
 
 molecular_last_download <- filter(prev_all_tests_with_id, testType == "Molecular") %>%
