@@ -310,7 +310,7 @@ reinfections <- cases %>%
   group_by(testType, ageRange, reinfection, date) %>%
   summarize(cases = n(), .groups = "drop") %>%
   right_join(crossing(date=seq(first_day, today(), by ="day"), 
-                      ageRange = age_levels, 
+                      ageRange = factor(age_levels, levels = age_levels),
                       testType = test_types, reinfection = c(TRUE, FALSE)), 
              by = c("testType",  "ageRange", "reinfection", "date")) %>%
   mutate(cases = replace_na(cases, 0)) %>%

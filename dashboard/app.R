@@ -199,6 +199,8 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                                            "Tasa de positividad (casos)" = "tp_casos",
                                                            "Casos" = "casos",
                                                            "Casos por 100,000" = "casos_per",
+                                                           "Reinfecciones" = "reinfecciones",
+                                                           "Reinfecciones por 100,000" = "reinfecciones_per",
                                                            "Pruebas" = "pruebas",
                                                            "Pruebas por 100,000" = "pruebas_per",
                                                            "Muertes" = "deaths",
@@ -603,7 +605,9 @@ server <- function(input, output, session) {
   
   by_age<- reactive({
     load(file.path(rda_path,"by-age.rda"));
+    load(file.path(rda_path,"reinfections.rda"));
     summary_by_age(tests_by_age,
+                   reinfections,
                    deaths_by_age,
                    pop_by_age,
                    start_date = input$range[1], 

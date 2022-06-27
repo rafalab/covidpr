@@ -1264,6 +1264,7 @@ return(list(p = p, tab = tab, pretty_tab = pretty_tab))
 }
 
 summary_by_age <- function(tests_by_age,
+                           reinfections,
                            deaths_by_age,
                            pop_by_age,
                            start_date = first_day, 
@@ -1271,16 +1272,30 @@ summary_by_age <- function(tests_by_age,
                            type = "Molecular", 
                            cumm = FALSE,
                            yscale = TRUE,
-                           version = c("tp_pruebas", "tp_casos", "casos_per", "casos", "pruebas_per", "pruebas", "deaths_per", "deaths"),
+                           version = c("tp_pruebas", "tp_casos", "casos_per", "casos", 
+                                       "reinfecciones", "reinfecciones_per",
+                                       "pruebas_per", "pruebas", "deaths_per", "deaths"),
                            facet = TRUE){
   
   version <- match.arg(version)
+  
+  ma7 <- function(d, y, k = 7) tibble(date = d, moving_avg = as.numeric(stats::filter(y, rep(1/k, k), side = 1)))
+  reinfections <-  reinfections %>% 
+    filter(reinfection & testType == type & !is.na(ageRange) &
+             date >= start_date & date <= end_date) %>%
+    select(-reinfection) %>% 
+    rename(reinfections = cases) %>%
+    arrange(date) %>%
+    group_by(ageRange) %>%
+    mutate(reinfections_week_avg = ma7(date, reinfections)$moving_avg) %>%
+    ungroup()
   
   dat <- tests_by_age %>%
     filter(testType == type & !is.na(ageRange) &
              date >= start_date & date <= end_date) %>%
     mutate(cases_rate_lower = get_ci_lower(cases_plus_negatives, cases_rate),
            cases_rate_upper = get_ci_upper(cases_plus_negatives, cases_rate)) %>%
+    left_join(reinfections, by = c("date", "ageRange")) %>%
     left_join(filter(deaths_by_age, date >= start_date & date <= end_date), by = c("date", "ageRange")) %>%
     left_join(pop_by_age, by = "ageRange")
     
@@ -1299,6 +1314,8 @@ summary_by_age <- function(tests_by_age,
              cases_rate_upper = get_ci_upper(negative_cases + cases, cases_rate),
              cases_week_avg = cases,
              people_total_week = people_total,
+             reinfections = cumsum(replace_na(reinfections,0)),
+             reinfections_week_avg = reinfections,
              deaths = cumsum(replace_na(deaths, 0)),
              deaths_week_avg = deaths,
              tests_total = cumsum(replace_na(tests_total, 0)),
@@ -1321,6 +1338,7 @@ summary_by_age <- function(tests_by_age,
     the_ylim <- c(0, pmax(0.25, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
   }
+  
   if(version == "tp_casos"){
     tab <- dat %>% 
       mutate(the_stat = make_pretty_ci(cases_rate, cases_rate_lower, cases_rate_upper)) %>%
@@ -1330,7 +1348,8 @@ summary_by_age <- function(tests_by_age,
     the_ylim <- c(0, pmax(0.2, max(dat$the_stat, na.rm = TRUE)))
     pct <- TRUE
   }
-  if(version == "casos"){
+ 
+   if(version == "casos"){
     tab <- dat %>% 
       mutate(the_stat = dynamic_round(cases_week_avg, min_round = 100)) %>%
       select(date, ageRange, the_stat)
@@ -1350,6 +1369,29 @@ summary_by_age <- function(tests_by_age,
       rename(the_stat = cases_week_avg, daily_stat = cases) 
     var_title <- "Casos únicos por día por 100,000 habitantes"
     the_ylim <- c(0, pmax(80, max(dat$daily_stat, na.rm = TRUE)))
+  }
+  
+  
+  if(version == "reinfecciones"){
+    tab <- dat %>% 
+      mutate(the_stat = dynamic_round(reinfections_week_avg, min_round = 100)) %>%
+      select(date, ageRange, the_stat)
+    dat <- dat %>% 
+      rename(the_stat = reinfections_week_avg, daily_stat = reinfections) 
+    var_title <- "Reinfecciones por día"
+    the_ylim <- c(0, pmax(50, max(dat$daily_stat, na.rm = TRUE)))
+  }
+  
+  if(version == "reinfecciones_per"){
+    tab <- dat %>% 
+      mutate(the_stat = reinfections_week_avg/poblacion*10^5) %>%
+      mutate(the_stat = ifelse(is.na(the_stat), "", format(round(the_stat, 1), nsmall = 1))) %>%
+      select(date, ageRange, the_stat)
+    dat <- dat %>% 
+      mutate(reinfections_week_avg = reinfections_week_avg/poblacion*10^5, reinfections = reinfections/poblacion*10^5) %>%
+      rename(the_stat = reinfections_week_avg, daily_stat = reinfections) 
+    var_title <- "Reinfecciones por día por 100,000 habitantes"
+    the_ylim <- c(0, pmax(8, max(dat$daily_stat, na.rm = TRUE)))
   }
   
   if(version == "pruebas"){
@@ -1417,7 +1459,8 @@ summary_by_age <- function(tests_by_age,
   # 
   if(cumm){
     the_ylim <- range(dat$the_stat, na.rm = TRUE)
-    if(version %in% c("casos", "casos_per", "deaths", "deaths_per", "pruebas", "pruebas_per")) the_ylim[1] <- 0
+    if(version %in% c("casos", "casos_per", "reinfecciones", "reinfecciones_per",
+                      "deaths", "deaths_per", "pruebas", "pruebas_per")) the_ylim[1] <- 0
   }
   
   tab <- tab %>%
@@ -1463,11 +1506,12 @@ summary_by_age <- function(tests_by_age,
         scale_y_continuous(labels = the_labels)
     }
     
-    if(version %in% c("casos", "casos_per")){ the_color_1 <- "#FBBCB2"; the_color_2 <- "#CC523A"}
+    if(version %in% c("casos", "casos_per", "reinfecciones", "reinfecciones_per")){ the_color_1 <- "#FBBCB2"; the_color_2 <- "#CC523A"}
     if(version %in% c("pruebas", "pruebas_per")){ the_color_1 <- "#D1D1E8"; the_color_2 <- "#31347A"}
     if(version %in% c("deaths", "deaths_per")){ the_color_1 <- "grey"; the_color_2 <- "black"}
     
-    if(version %in% c("casos", "casos_per", "pruebas", "pruebas_per", "deaths", "deaths_per")){
+    if(version %in% c("casos", "casos_per", "reinfecciones", "reinfecciones_per", 
+                      "pruebas", "pruebas_per", "deaths", "deaths_per")){
       if(cumm){
         p <- p + 
           geom_bar(stat = "identity", color = the_color_1, fill = the_color_1, width= 0.2)
