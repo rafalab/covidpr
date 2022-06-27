@@ -282,8 +282,8 @@ cases <- all_tests_with_id %>%
            testType %in% test_types) %>%
   arrange(testType, patientId, date) %>%
   group_by(testType, patientId) %>% ##newId takes reinfection into account
-  mutate(newId = paste0(patientId, "-", 
-                        c(0, floor(diff(as.numeric(date))/90)))) %>%
+  mutate(days = c(0, floor(diff(as.numeric(date))/90))) %>%
+  mutate(newId = paste0(patientId, "-", days)) %>%
   mutate(n=n()) %>%
   ungroup() %>%
   arrange(testType, newId, date) %>%
@@ -291,7 +291,29 @@ cases <- all_tests_with_id %>%
   slice(1) %>% 
   ungroup() %>%
   select(-patientId, -result) %>%
-  arrange(testType, date) %>%
+  arrange(testType, date) 
+
+## Do reinfections by age here since instead of 
+age_starts <- c(0, 10, 15, 20, 30, 40, 65, 75)
+age_ends <- c(9, 14, 19, 29, 39, 64, 74, Inf)
+
+## compute daily totals
+age_levels <- paste(age_starts, age_ends, sep = " a ")
+age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
+
+reinfections <- cases %>%
+  mutate(reinfection = days>0) %>%
+  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
+         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
+  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
+  mutate(ageRange = factor(ageRange, levels = age_levels)) %>%
+  group_by(testType, ageRange, reinfection, date) %>%
+  summarize(cases = n(), .groups = "drop") 
+
+reinfections %>% filter(testType ==  "Molecular+Antigens" & reinfection) %>%
+  ggplot(aes(date, cases)) + geom_col() + facet_wrap(~ageRange)
+  
+cases <- cases %>%
   group_by(testType, date) %>% 
   summarize(cases = n(), .groups = "drop") 
 
@@ -536,7 +558,9 @@ save(first_day, last_complete_day, added_records,
      hosp_mort, pr_pop, 
      file = file.path(rda_path, "data.rda"))
 
-## save this as backup in case salud dashboard down
+save(reinfections,  file = file.path(rda_path, "reinfections.rda"))
+
+     ## save this as backup in case salud dashboard down
 save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
 save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
