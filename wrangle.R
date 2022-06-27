@@ -308,7 +308,13 @@ reinfections <- cases %>%
   mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
   mutate(ageRange = factor(ageRange, levels = age_levels)) %>%
   group_by(testType, ageRange, reinfection, date) %>%
-  summarize(cases = n(), .groups = "drop") 
+  summarize(cases = n(), .groups = "drop") %>%
+  right_join(crossing(date=seq(first_day, today(), by ="day"), 
+                      ageRange = age_levels, 
+                      testType = test_types, reinfection = c(TRUE, FALSE)), 
+             by = c("testType",  "ageRange", "reinfection", "date")) %>%
+  mutate(cases = replace_na(cases, 0)) %>%
+  arrange(testType, ageRange, cases, reinfection)
 
 if(FALSE){
   ##check with plot

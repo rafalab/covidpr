@@ -65,6 +65,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                             "Casos por día" = "casos", 
                                             "Muertes y hospitalizaciones" = "hosp-mort",
                                             "Casos, positivos y pruebas por día" = "positivos",
+                                            "Reinfecciones" = "reinfecciones",
                                             "Positivos y pruebas por municipio por día" = "municipios",
                                             "Positivos y pruebas por edad por día" = "edad",
                                             "Positivos y pruebas por municipio/edad por día" = "municipios-edad",
@@ -730,6 +731,14 @@ server <- function(input, output, session) {
     switch(input$dataset,
            "pruebas" = readRDS(file.path(rda_path, "all_tests.rds")),
            "casos" = cases,
+           "reinfecciones" = {
+             load(file.path(rda_path, "reinfections.rda"))
+             
+             reinfections %>%
+               filter(testType == "Molecular+Antigens" & reinfection) %>%
+               select(date, ageRange, cases) %>%
+               arrange(date, ageRange)
+           },
            "hosp-mort" = {
              hosp_mort %>%
                select(date, HospitCOV19, CamasICU, CamasICU_disp, IncMueSalud, 
@@ -807,6 +816,7 @@ server <- function(input, output, session) {
     },
     contentType = "txt/csv"
   )
+  
   output$downloadTable <- downloadHandler(
     filename = function() {
       paste0("datos_diarios", "-", format(the_stamp, "%Y-%m-%d_%H:%M:%S"),".csv")
