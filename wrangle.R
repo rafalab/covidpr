@@ -310,9 +310,22 @@ reinfections <- cases %>%
   group_by(testType, ageRange, reinfection, date) %>%
   summarize(cases = n(), .groups = "drop") 
 
-reinfections %>% filter(testType ==  "Molecular+Antigens" & reinfection) %>%
-  ggplot(aes(date, cases)) + geom_col() + facet_wrap(~ageRange)
-  
+if(FALSE){
+  ##check with plot
+
+  reinfections %>% filter(testType ==  "Molecular+Antigens" & reinfection) %>%
+    ggplot(aes(date, cases)) + geom_col() + facet_wrap(~ageRange)
+
+  reinfections %>% 
+    filter(date>=make_date(2021,7,1)) %>%
+    filter(testType ==  "Molecular+Antigens" & reinfection) %>%
+    group_by(date) %>%
+    summarize(cases=sum(cases), .groups = "drop") %>% 
+    ggplot(aes(date, cases)) + 
+    geom_col() +
+    theme_bw()
+}
+
 cases <- cases %>%
   group_by(testType, date) %>% 
   summarize(cases = n(), .groups = "drop") 

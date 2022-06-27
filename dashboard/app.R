@@ -146,6 +146,15 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                             selected = FALSE,
                                             inline = TRUE),
                                plotOutput("casos")),
+                      
+                      tabPanel("Reinfecciones",
+                               radioButtons("reinfections_log",
+                                            label = "Escala:",
+                                            choices = list("Lineal" = FALSE,
+                                                           "Logarítmica" = TRUE),
+                                            selected = FALSE,
+                                            inline = TRUE),
+                               plotOutput("reinfecciones")),
 
                       tabPanel("Regiones",
                                radioButtons("by_region_version",
@@ -554,7 +563,28 @@ server <- function(input, output, session) {
                log.scale = as.logical(input$cases_log))
   )
   
-
+  output$reinfecciones <- renderPlot({
+    load(file.path(rda_path, "reinfections.rda"))
+    
+    ma7 <- function(d, y, k = 7) tibble(date = d, moving_avg = as.numeric(stats::filter(y, rep(1/k, k), side = 1)))
+    
+    tab <- reinfections %>% 
+      filter(reinfection) %>%
+      group_by(testType, date) %>%
+      summarize(cases=sum(cases), .groups = "drop") %>%
+      group_by(testType) %>%
+      mutate(cases_week_avg = ma7(date, cases)$moving_avg)
+    
+    plot_cases(tab, 
+               start_date = input$range[1], 
+               end_date = input$range[2], 
+               type =  input$testType,
+               cumm = as.logical(input$acumulativo), 
+               yscale = as.logical(input$yscale),
+               log.scale = as.logical(input$reinfections_log),
+               title = "Reinfecciones")
+  })
+  
   # by region stats ---------------------------------------------------------
 
   by_region <- reactive({load(file.path(rda_path,"regions.rda"));

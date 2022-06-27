@@ -270,7 +270,8 @@ plot_cases <- function(cases,
                        type = "Molecular", 
                        cumm = FALSE,
                        yscale = TRUE,
-                       log.scale = FALSE){
+                       log.scale = FALSE,
+                       title = "Casos únicos"){
   if(log.scale){ yscale <- FALSE; the_transf <- "log2"} else the_transf = "identity"
   if(cumm){
     ret <- cases %>% 
@@ -279,13 +280,13 @@ plot_cases <- function(cases,
       filter(date >= start_date & date <= end_date) %>%
       ggplot(aes(date, cases)) +
       geom_bar(stat = "identity", fill = "#FBBCB2", width= 0.75) +
-      labs(title = "Casos acumulados",
+      labs(title = paste(title, "acumulados"),
            subtitle= paste("Basado en pruebas", 
                      case_when(type == "Molecular" ~ "moleculares", 
                                type == "Serological" ~ "serológicas",
                                type == "Antigens" ~ "de antígenos",
                                type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) +
-      ylab("Casos") +
+      ylab(title) +
       xlab("Fecha") +
       scale_y_continuous(labels = scales::comma, trans = the_transf) +
       scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
@@ -297,9 +298,9 @@ plot_cases <- function(cases,
     ret <- cases %>%
       filter(testType == type & date >= start_date & date <= end_date) %>%
       ggplot(aes(x = date)) +
-      ylab("Casos únicos") +
+      ylab(title) +
       xlab("Fecha") +
-      labs(title = "Casos únicos", 
+      labs(title = title, 
            subtitle = paste("Basado en pruebas",
                             case_when(type == "Molecular" ~ "moleculares", 
                                       type == "Serological" ~ "serológicas",
