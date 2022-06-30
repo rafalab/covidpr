@@ -96,6 +96,7 @@ tests_by_region[, rate :=  people_positives / people_total]
 ## and use this to compute percent of people with positive tests
 
 positivity <- function(dat){
+  dat<-copy(dat)
   day_seq <- seq(first_day + weeks(1), max(dat$date), by = "day")
   res <- lapply(day_seq, function(the_day){
     tmp <- dat[date > the_day - weeks(1) & date <= the_day]
