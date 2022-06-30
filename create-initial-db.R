@@ -26,7 +26,7 @@ icu_beds <- 229 #if available beds is missing change to this
 
 first_day <- make_date(2020, 3, 12)
 
-last_day <- make_date(2021, 12, 31)
+last_day <- make_date(2022, 6, 15)
 
 the_years <- seq(2020, year(today()))
 
@@ -66,7 +66,6 @@ get_bioportal <- function(url){
   ))
 }
 
-test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 original_test_types <- c("Molecular", "Antigens")
 
 # Reading and wrangling cases data from database ---------------------------
@@ -99,7 +98,7 @@ all_tests_with_id[, `:=`(testType = fifelse(str_to_title(testType) == "Antigeno"
                            grepl("negative", result), "negative",
                            result == "not detected", "negative", default = "other"))]
 
-all_tests_with_id <- all_tests_with_id[testType %in% test_types]
+all_tests_with_id <- all_tests_with_id[testType %in% original_test_types]
 all_tests_with_id <- all_tests_with_id[order(reportedDate, collectedDate, patientId)] 
 
 
