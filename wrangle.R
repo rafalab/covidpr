@@ -221,8 +221,12 @@ if(added_records>0){
     age_end = as.numeric(str_extract(ageRange, "\\d+$")))] 
   reinfections[, ageRange := factor(age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))], levels = age_levels)]
   reinfections <- reinfections[, .(cases = .N), keyby =  .(testType, ageRange, reinfection, date)]
+  reinfections$ageRange <- forcats::fct_explicit_na(reinfections$ageRange, "No reportada")
+  reinfections[,age_start:=NULL]
+  reinfections[,age_end:=NULL]
+  
   reinfections <- merge(CJ(date=seq(first_day, today(), by ="day"), 
-                           ageRange = factor(age_levels, levels = age_levels),
+                           ageRange = factor(levels(reinfections$ageRange), levels = levels(reinfections$ageRange)),
                            testType = test_types, reinfection = c(TRUE, FALSE)),
                         reinfections, all.x = TRUE, 
                         by = c("testType",  "ageRange", "reinfection", "date"))
