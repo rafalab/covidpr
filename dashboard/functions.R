@@ -670,7 +670,7 @@ make_positivity_table <- function(tests, hosp_mort,
            people_positives_week, neg, cases, fit, cases_rate, dummy) %>%
     arrange(desc(date)) %>%
     mutate(date = format(date, "%b %d")) %>%
-    setNames(c("Fecha", "Pruebas", "Positivos", "Negativos", "Casos", "Positivos / Pruebas", "Casos / (Casos+Neg)"))
+    setNames(c("Fecha", "Pruebas", "Positivos", "Negativos", "Casos", "Positivos / Pruebas", "Casos / (Casos+Neg)", "dummy"))
   
    return(ret)
 }
@@ -1279,7 +1279,6 @@ summary_by_age <- function(tests_by_age,
   
   version <- match.arg(version)
   
-  ma7 <- function(d, y, k = 7) tibble(date = d, moving_avg = as.numeric(stats::filter(y, rep(1/k, k), side = 1)))
   reinfections <-  reinfections %>% 
     filter(reinfection & testType == type & !is.na(ageRange) &
              date >= start_date & date <= end_date) %>%
@@ -1287,7 +1286,7 @@ summary_by_age <- function(tests_by_age,
     rename(reinfections = cases) %>%
     arrange(date) %>%
     group_by(ageRange) %>%
-    mutate(reinfections_week_avg = ma7(date, reinfections)$moving_avg) %>%
+    mutate(reinfections_week_avg = stats::filter(reinfections, rep(1/7, 7), side = 1)) %>%
     ungroup()
   
   dat <- tests_by_age %>%
