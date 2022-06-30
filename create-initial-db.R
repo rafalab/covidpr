@@ -71,12 +71,11 @@ original_test_types <- c("Molecular", "Antigens")
 # Reading and wrangling cases data from database ---------------------------
 message("Reading case data.")
 
-all_tests_with_id_molecular <- get_bioportal(cases_url_molecular)
-all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
+all_tests_with_id_molecular <- setDT(get_bioportal(cases_url_molecular))
+all_tests_with_id_antigens <- setDT(get_bioportal(cases_url_antigens))
 all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
 rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
 
-all_tests_with_id <- setDT(all_tests_with_id)
 all_tests_with_id <- distinct(all_tests_with_id)
 
 message("Processing case data.")
