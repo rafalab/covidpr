@@ -26,7 +26,7 @@ icu_beds <- 229 #if available beds is missing change to this
 
 first_day <- make_date(2020, 3, 12)
 
-last_complete_day <- today() - 1
+last_day <- make_date(2021, 12, 31)
 
 the_years <- seq(2020, year(today()))
 
@@ -42,10 +42,21 @@ message("Downloading dataset.")
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
 cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
 
+last_day<- last_day |>
+  with_tz(tzone = "GMT") |>
+  str_replace(" ", "T") |>
+  paste0("Z")
+
+
 cases_url_molecular <-  paste0(cases_url, 
-                               "?testType=Molecular")
+                               "?testType=Molecular",
+                               "&createdAtEndDate=",
+                               last_day)
+
 cases_url_antigens <- paste0(cases_url, 
-                             "?testType=Antigens")
+                             "?testType=Antigens",
+                             "&createdAtEndDate=",
+                             last_day)
 
 get_bioportal <- function(url){
   setDT(jsonlite::fromJSON(
@@ -66,6 +77,7 @@ all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
 all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
 rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
 
+all_tests_with_id <- setDT(all_tests_with_id)
 all_tests_with_id <- distinct(all_tests_with_id)
 
 message("Processing case data.")
