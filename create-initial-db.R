@@ -24,9 +24,9 @@ pr_pop <- 3285874 ## population of puerto rico
 
 icu_beds <- 229 #if available beds is missing change to this
 
-first_day <- make_date(2020, 3, 12)
+first_day <- make_datetime(2020, 3, 12, 0, 0, 0, tz= "America/Puerto_Rico")
 
-last_day <- make_date(2022, 6, 15)
+last_day <- make_datetime(2022, 6, 29, 0, 0, 0, tz= "America/Puerto_Rico")
 
 the_years <- seq(2020, year(today()))
 
@@ -42,19 +42,27 @@ message("Downloading dataset.")
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
 cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
 
+first_day<- first_day |>
+  with_tz(tzone = "GMT") |>
+  format("%Y-%m-%dT%H:%M:%SZ")
+
+
 last_day<- last_day |>
   with_tz(tzone = "GMT") |>
-  str_replace(" ", "T") |>
-  paste0("Z")
-
+  format("%Y-%m-%dT%H:%M:%SZ")
+  
 
 cases_url_molecular <-  paste0(cases_url, 
                                "?testType=Molecular",
+                               "&createdAtStartDate=",
+                               first_day,
                                "&createdAtEndDate=",
                                last_day)
 
 cases_url_antigens <- paste0(cases_url, 
                              "?testType=Antigens",
+                             "&createdAtStartDate=",
+                             first_day,
                              "&createdAtEndDate=",
                              last_day)
 
@@ -71,8 +79,8 @@ original_test_types <- c("Molecular", "Antigens")
 # Reading and wrangling cases data from database ---------------------------
 message("Reading case data.")
 
-all_tests_with_id_molecular <- setDT(get_bioportal(cases_url_molecular))
-all_tests_with_id_antigens <- setDT(get_bioportal(cases_url_antigens))
+all_tests_with_id_molecular <- get_bioportal(cases_url_molecular)
+all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
 all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
 rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
 
