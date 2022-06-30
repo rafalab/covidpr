@@ -34,20 +34,24 @@ imputation_delay  <- 2
 
 alpha <- 0.05
 
+test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
+
+original_test_types <- c("Molecular", "Antigens")
+
 ## Load latest data
 message("Loading previous dataset.")
 
 prev_all_tests_with_id <- readRDS(file = file.path(rda_path, "all_tests_with_id.rds"))
 
-molecular_last_download <- max(prev_all_tests_with_id[testType == "Molecular"]$resultCreatedAt) |>
+molecular_last_download <- max(prev_all_tests_with_id[testType == "Molecular"]$orderCreatedAt) |>
   with_tz(tzone = "GMT") |>
-  str_replace(" ", "T") |>
-  paste0("Z")
+  format("%Y-%m-%dT%H:%M:%SZ")
 
-antigen_last_download <- max(prev_all_tests_with_id[testType == "Antigens"]$resultCreatedAt) |>
+antigen_last_download <- max(prev_all_tests_with_id[testType == "Antigens"]$orderCreatedAt) |>
   with_tz(tzone = "GMT") |>
-  str_replace(" ", "T") |>
-  paste0("Z")
+  format("%Y-%m-%dT%H:%M:%SZ")
+
+#createdAtStartDate=03-12-2020T04:00:00Z&createdAtEndDate=06-15-2022T04:00:00Z
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
 cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
@@ -55,22 +59,25 @@ cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/b
 cases_url_molecular <-  paste0(cases_url, 
                                "?testType=Molecular", 
                                "&createdAtStartDate=",
-                               molecular_last_download)
+                               molecular_last_download,
+                               "&createdAtEndDate=",
+                               format(now(tzone="GMT")+days(1), "%Y-%m-%dT%H:%M:%SZ"))
+
 cases_url_antigens <- paste0(cases_url, 
                              "?testType=Antigens",
                              "&createdAtStartDate=",
-                             antigen_last_download)
+                             antigen_last_download,
+                             "&createdAtEndDate=",
+                             format(now(tzone="GMT")+days(1), "%Y-%m-%dT%H:%M:%SZ"))
+
 
 get_bioportal <- function(url){
   setDT(jsonlite::fromJSON(
     rawToChar(
       httr::GET(url, httr::content_type('application/json'),
-                httr::add_headers('Accept-Enconding'="br"))$content)
-  ))
+                httr::add_headers('Accept-Enconding'="br"))$content
+  )))
 }
-
-test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
-original_test_types <- c("Molecular", "Antigens")
 
 # Reading and wrangling cases data from database ---------------------------
 message("Reading case data.")
@@ -78,7 +85,7 @@ message("Reading case data.")
 all_tests_with_id_molecular <- get_bioportal(cases_url_molecular)
 all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
 all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
-rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
+rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc() 
 
 message("Processing case data.")
 all_tests_with_id[, result := factor(tolower(result))]
@@ -89,9 +96,9 @@ all_tests_with_id[, `:=`(testType = fifelse(str_to_title(testType) == "Antigeno"
                          resultCreatedAt = ymd_hms(resultCreatedAt, tz = "America/Puerto_Rico"),
                          ageRange       = factor(na_if(ageRange, "N/A"), levels = age_levels),
                          region = recode(region,`N/A` = "No reportada",
-                                                Bayamon = "Bayamón", 
-                                                Mayaguez = "Mayagüez", .missing = "No reportada"),
-                           result = fcase( 
+                                         Bayamon = "Bayamón", 
+                                         Mayaguez = "Mayagüez", .missing = "No reportada"),
+                         result = fcase( 
                            (grepl("covid", result) | grepl("sars-cov-2", result)) &
                              grepl("positive", result),  "positive",
                            grepl("influenza", result),  "other",
@@ -99,11 +106,11 @@ all_tests_with_id[, `:=`(testType = fifelse(str_to_title(testType) == "Antigeno"
                            grepl("negative", result), "negative",
                            result == "not detected", "negative", default = "other"))]
 
-all_tests_with_id <- all_tests_with_id[order(reportedDate, collectedDate, patientId),] 
-all_tests_with_id <- all_tests_with_id[testType %in% test_types]
+all_tests_with_id <- all_tests_with_id[testType %in% original_test_types]
+all_tests_with_id <- all_tests_with_id[order(reportedDate, collectedDate, patientId)] 
 
-all_tests_with_id$region <- factor(all_tests_with_id$region,
-                                   levels = c(setdiff(unique(all_tests_with_id$region), "No reportada"), "No reportada"))
+all_tests_with_id$region <- factor(all_tests_with_id$region, levels = levels(prev_all_tests_with_id$region))
+
 ## Impute missing dates
 all_tests_with_id[, date := fifelse(collectedDate > reportedDate, reportedDate, collectedDate)] ## if collectedDate is in the future make it reportedDate
 all_tests_with_id[, date := fifelse(is.na(collectedDate), reportedDate - days(imputation_delay),  collectedDate)]
@@ -117,195 +124,195 @@ all_tests_with_id <- funion(prev_all_tests_with_id, all_tests_with_id)[order(dat
 added_records <- pmax(nrow(all_tests_with_id) - nrow(prev_all_tests_with_id), 0)
 
 if(added_records>0){
-
-all_dates <- CJ(testType = test_types, date =  seq(first_day, max(all_tests_with_id$date), by = "day"))
-# -- Computing observed positivity rate
-## adding a new test type that combines molecular and antigens
-mol_anti <- all_tests_with_id[date >= first_day & testType %in% c("Molecular", "Antigens") & result %in% c("positive", "negative")]
-mol_anti[, testType := "Molecular+Antigens"]
-
-
-## compute daily totals
-tests <- rbind(all_tests_with_id, mol_anti)[date >= first_day & 
-           testType %in% test_types & 
-           result %in% c("positive", "negative")]
-tests <- tests[, .(people_positives = uniqueN(patientId[result == "positive"]),
-                   people_total = uniqueN(patientId),
-                   tests_positives = sum(result == "positive"),
-                   tests_total = .N), by = c("testType", "date")]
-tests <- merge(tests, all_dates, by = c("testType", "date"), all.y = TRUE)
-tests[is.na(tests)] <- 0
-tests[, rate :=  people_positives / people_total]
-
-## define function to compute weekly distinct cases
-## and use this to compute percent of people with positive tests
-
-positivity <- function(dat){
-  dat<-copy(dat)
-  day_seq <- seq(first_day + weeks(1), max(dat$date), by = "day")
-  res <- lapply(day_seq, function(the_day){
-    tmp <- dat[date > the_day - weeks(1) & date <= the_day]
-    tmp[, obs := entry_date <= the_day]
-    return(c(
-      uniqueN(tmp$patientId[tmp$pos]),
-      uniqueN(tmp$patientId),
-      uniqueN(tmp$patientId[tmp$pos & tmp$obs]),
-      uniqueN(tmp$patientId[tmp$obs])))
-  })
   
-  res <- do.call(rbind, res)
-  colnames(res) <- c("people_positives_week", "people_total_week",
-                     "obs_people_positives_week", "obs_people_total_week")
-  res <- as.data.table(res)
-  res$date <- day_seq
-  res[, fit := people_positives_week / people_total_week]
-  res[, obs_fit := obs_people_positives_week / obs_people_total_week]
-  res[, lower := qbinom(0.025, people_total_week, fit) / people_total_week]
-  res[, upper := qbinom(0.975, people_total_week, fit) / people_total_week]
-  res[, obs_lower := qbinom(0.025, obs_people_total_week, obs_fit) / obs_people_total_week]
-  res[, obs_upper := qbinom(0.975, obs_people_total_week, obs_fit) / obs_people_total_week]
-  return(res[, .(date, fit, lower, upper, obs_fit, obs_lower, obs_upper, people_positives_week, people_total_week)])
-}
-
-message("Computing positivity.")
-
-## run the function on each test type
-fits <- rbind(all_tests_with_id, mol_anti) 
-fits <- fits[date >= first_day & testType %in% test_types & result %in% c("positive", "negative")]
-fits[,`:=`(pos = result == "positive", entry_date = as_date(resultCreatedAt))]
-fits <- fits[, positivity(.SD), by = "testType"]
-
-## add new variable to test data frame
-tests <- merge(tests, fits, by = c("testType", "date"), all.x = TRUE) 
-cols <- c("people_positives_week", "people_total_week")
-tests[, (cols) := lapply(.SD, replace_na, 0), .SDcols = cols]
-
-## compute weekly totals for positive tests and total tests
-tests[, `:=`(tests_positives_week = sum7(tests_positives),
-             tests_total_week = sum7(tests_total)), by = "testType"]
-
-# compute unique cases ------------------------------------------------------------
-cases <- rbind(all_tests_with_id, mol_anti)[
-  date >= first_day & result == "positive" &
-           testType %in% test_types][order(testType, patientId, date)]
-
-cases[, n:= .N,  keyby = c("testType", "patientId")]
-cases[, days:=0]
-cases[n>1, days := c(0, floor(diff(as.numeric(date))/90)), by = c("testType", "patientId")]
-cases[, newId := paste(paste0(patientId, "-", days))]
-cases <- cases[order(testType, newId, date)]
-cases <- cases[, .SD[1], keyby = c("testType", "newId")] 
-cases[, patientId := NULL]
-cases[, result:=NULL]
-cases <- cases[order(testType, date)]
-
-## Do reinfections by age here since instead of 
-age_starts <- c(0, 10, 15, 20, 30, 40, 65, 75)
-age_ends <- c(9, 14, 19, 29, 39, 64, 74, Inf)
-
-## compute daily totals
-age_levels <- paste(age_starts, age_ends, sep = " a ")
-age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
-
-reinfections <- copy(cases)
-reinfections[, `:=`(
-  reinfection = days>0,
-  age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-  age_end = as.numeric(str_extract(ageRange, "\\d+$")))] 
-reinfections[, ageRange := factor(age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))], levels = age_levels)]
-reinfections <- reinfections[, .(cases = .N), keyby =  .(testType, ageRange, reinfection, date)]
-reinfections <- merge(CJ(date=seq(first_day, today(), by ="day"), 
-                         ageRange = factor(age_levels, levels = age_levels),
-                         testType = test_types, reinfection = c(TRUE, FALSE)),
-                      reinfections, all.x = TRUE, 
-                      by = c("testType",  "ageRange", "reinfection", "date"))
-reinfections[, cases := replace_na(cases, 0)]
-reinfections <- reinfections[order(testType, ageRange, cases, reinfection)]
-
-if(FALSE){
-  ##check with plot
-
-  reinfections %>% filter(testType ==  "Molecular+Antigens" & reinfection) %>%
-    ggplot(aes(date, cases)) + geom_col() + facet_wrap(~ageRange)
-
-  reinfections %>% 
-    filter(date>=make_date(2021,7,1)) %>%
-    filter(testType ==  "Molecular+Antigens" & reinfection) %>%
-    group_by(date) %>%
-    summarize(cases=sum(cases), .groups = "drop") %>% 
-    ggplot(aes(date, cases)) + 
-    geom_col() +
-    theme_bw()
-}
-
-cases <- cases[, .(cases = .N), keyby = .(testType, date)]
+  all_dates <- CJ(testType = test_types, date =  seq(first_day, max(all_tests_with_id$date), by = "day"))
+  # -- Computing observed positivity rate
+  ## adding a new test type that combines molecular and antigens
+  mol_anti <- all_tests_with_id[date >= first_day & testType %in% c("Molecular", "Antigens") & result %in% c("positive", "negative")]
+  mol_anti[, testType := "Molecular+Antigens"]
   
-# Make sure all dates are included
-cases <-  merge(tests[, .(testType, date)], cases, by = c("testType", "date"), all.x = TRUE) 
-cases[, cases := replace_na(cases, 0)]
   
-# compute daily weekly average and add to cases data frame
-cases[, cases_week_avg := ma7(cases), by = "testType"]
-
-## add new cases and weekly average to tests data frame
-tests <- merge(tests, cases, by = c("testType", "date"), all.x = TRUE)
-tests[, cases_plus_negatives := (people_total_week - people_positives_week + cases_week_avg * 7)]
-tests[, `:=`(cases_rate = cases_week_avg * 7 / cases_plus_negatives,
-             cases_plus_negatives_daily = people_total - people_positives + cases)]
-tests[, cases_rate_daily := cases / cases_plus_negatives_daily]
-         
-## Compute unique negatives
-
-# compute unique negative cases ------------------------------------------------------------
-message("Computing unique negatives.")
-
-negative_cases <- rbind(all_tests_with_id, mol_anti)[
-  date>=first_day & result == "negative" &
-           testType %in% test_types]
-negative_cases <- negative_cases[order(date)]
-negative_cases <- negative_cases[, .SD[1], keyby = .(testType, patientId)]
-negative_cases[, patientId:=NULL]
-negative_cases[, result:=NULL]
-negative_cases <- negative_cases[, .(negative_cases = .N), keyby = .(testType, date)]
-negative_cases <- negative_cases[order(testType, date)]
+  ## compute daily totals
+  tests <- rbind(all_tests_with_id, mol_anti)[date >= first_day & 
+             testType %in% test_types & 
+             result %in% c("positive", "negative")]
+  tests <- tests[, .(people_positives = uniqueN(patientId[result == "positive"]),
+                     people_total = uniqueN(patientId),
+                     tests_positives = sum(result == "positive"),
+                     tests_total = .N), by = c("testType", "date")]
+  tests <- merge(tests, all_dates, by = c("testType", "date"), all.y = TRUE)
+  tests[is.na(tests)] <- 0
+  tests[, rate :=  people_positives / people_total]
   
-# Compute daily weekly average and add to negative_cases data frame
-# but first make sure all dates are included
-negative_cases <-  merge(tests[, .(testType, date)], negative_cases, by = c("testType", "date"), all.x = TRUE)
-negative_cases[, negative_cases := replace_na(negative_cases, 0)]
+  ## define function to compute weekly distinct cases
+  ## and use this to compute percent of people with positive tests
   
-# compute daily weekly average and add to negative_cases data frame
-negative_cases[, negative_cases_week_avg := ma7(negative_cases), by = "testType"]
-
-## add new cases and weekly average to tests data frame
-tests <- merge(tests, negative_cases, by = c("testType", "date"), all.x=TRUE)
-
-## the following are diagnostic plots
-if(FALSE){
-  library(scales)
+  positivity <- function(dat){
+    dat<-copy(dat)
+    day_seq <- seq(first_day + weeks(1), max(dat$date), by = "day")
+    res <- lapply(day_seq, function(the_day){
+      tmp <- dat[date > the_day - weeks(1) & date <= the_day]
+      tmp[, obs := entry_date <= the_day]
+      return(c(
+        uniqueN(tmp$patientId[tmp$pos]),
+        uniqueN(tmp$patientId),
+        uniqueN(tmp$patientId[tmp$pos & tmp$obs]),
+        uniqueN(tmp$patientId[tmp$obs])))
+    })
+    
+    res <- do.call(rbind, res)
+    colnames(res) <- c("people_positives_week", "people_total_week",
+                       "obs_people_positives_week", "obs_people_total_week")
+    res <- as.data.table(res)
+    res$date <- day_seq
+    res[, fit := people_positives_week / people_total_week]
+    res[, obs_fit := obs_people_positives_week / obs_people_total_week]
+    res[, lower := qbinom(0.025, people_total_week, fit) / people_total_week]
+    res[, upper := qbinom(0.975, people_total_week, fit) / people_total_week]
+    res[, obs_lower := qbinom(0.025, obs_people_total_week, obs_fit) / obs_people_total_week]
+    res[, obs_upper := qbinom(0.975, obs_people_total_week, obs_fit) / obs_people_total_week]
+    return(res[, .(date, fit, lower, upper, obs_fit, obs_lower, obs_upper, people_positives_week, people_total_week)])
+  }
   
-  source("dashboard/functions.R")
-  lag_to_complete <- 7
-  last_day <- today() - days(lag_to_complete)
+  message("Computing positivity.")
   
-  ## check positivity rate
+  ## run the function on each test type
+  fits <- rbind(all_tests_with_id, mol_anti) 
+  fits <- fits[date >= first_day & testType %in% test_types & result %in% c("positive", "negative")]
+  fits[,`:=`(pos = result == "positive", entry_date = as_date(resultCreatedAt))]
+  fits <- fits[, positivity(.SD), by = "testType"]
   
-  plot_positivity(tests, first_day, today(), type = "Molecular") +
-    geom_smooth(method = "loess", formula = "y~x", span = 0.05, method.args = list(degree = 1, weight = tests$tests), color = "red", lty =2, fill = "pink") 
+  ## add new variable to test data frame
+  tests <- merge(tests, fits, by = c("testType", "date"), all.x = TRUE) 
+  cols <- c("people_positives_week", "people_total_week")
+  tests[, (cols) := lapply(.SD, replace_na, 0), .SDcols = cols]
   
-  plot_positivity(tests, first_day, today(), type = "Molecular") 
-  ## check test plot
-  plot_test(tests, first_day, today())
-  plot_test(tests, first_day, today(), type  = "Antigens")
-  plot_test(tests, first_day, today(), type  = "Molecular+Antigens")
-
-  ## check cases plot
-  ys <- TRUE
-  plot_cases(cases, yscale = ys)
-  plot_cases(cases, first_day, today(), type  = "Antigens", yscale = ys)
-  plot_cases(cases, first_day, today(), type  = "Molecular+Antigens", yscale = ys)
+  ## compute weekly totals for positive tests and total tests
+  tests[, `:=`(tests_positives_week = sum7(tests_positives),
+               tests_total_week = sum7(tests_total)), by = "testType"]
   
-}
+  # compute unique cases ------------------------------------------------------------
+  cases <- rbind(all_tests_with_id, mol_anti)[
+    date >= first_day & result == "positive" &
+             testType %in% test_types][order(testType, patientId, date)]
+  
+  cases[, n:= .N,  keyby = c("testType", "patientId")]
+  cases[, days:=0]
+  cases[n>1, days := c(0, floor(diff(as.numeric(date))/90)), by = c("testType", "patientId")]
+  cases[, newId := paste(paste0(patientId, "-", days))]
+  cases <- cases[order(testType, newId, date)]
+  cases <- cases[, .SD[1], keyby = c("testType", "newId")] 
+  cases[, patientId := NULL]
+  cases[, result:=NULL]
+  cases <- cases[order(testType, date)]
+  
+  ## Do reinfections by age here since instead of 
+  age_starts <- c(0, 10, 15, 20, 30, 40, 65, 75)
+  age_ends <- c(9, 14, 19, 29, 39, 64, 74, Inf)
+  
+  ## compute daily totals
+  age_levels <- paste(age_starts, age_ends, sep = " a ")
+  age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
+  
+  reinfections <- copy(cases)
+  reinfections[, `:=`(
+    reinfection = days>0,
+    age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
+    age_end = as.numeric(str_extract(ageRange, "\\d+$")))] 
+  reinfections[, ageRange := factor(age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))], levels = age_levels)]
+  reinfections <- reinfections[, .(cases = .N), keyby =  .(testType, ageRange, reinfection, date)]
+  reinfections <- merge(CJ(date=seq(first_day, today(), by ="day"), 
+                           ageRange = factor(age_levels, levels = age_levels),
+                           testType = test_types, reinfection = c(TRUE, FALSE)),
+                        reinfections, all.x = TRUE, 
+                        by = c("testType",  "ageRange", "reinfection", "date"))
+  reinfections[, cases := replace_na(cases, 0)]
+  reinfections <- reinfections[order(testType, ageRange, cases, reinfection)]
+  
+  if(FALSE){
+    ##check with plot
+  
+    reinfections %>% filter(testType ==  "Molecular+Antigens" & reinfection) %>%
+      ggplot(aes(date, cases)) + geom_col() + facet_wrap(~ageRange)
+  
+    reinfections %>% 
+      filter(date>=make_date(2021,7,1)) %>%
+      filter(testType ==  "Molecular+Antigens" & reinfection) %>%
+      group_by(date) %>%
+      summarize(cases=sum(cases), .groups = "drop") %>% 
+      ggplot(aes(date, cases)) + 
+      geom_col() +
+      theme_bw()
+  }
+  
+  cases <- cases[, .(cases = .N), keyby = .(testType, date)]
+    
+  # Make sure all dates are included
+  cases <-  merge(tests[, .(testType, date)], cases, by = c("testType", "date"), all.x = TRUE) 
+  cases[, cases := replace_na(cases, 0)]
+    
+  # compute daily weekly average and add to cases data frame
+  cases[, cases_week_avg := ma7(cases), by = "testType"]
+  
+  ## add new cases and weekly average to tests data frame
+  tests <- merge(tests, cases, by = c("testType", "date"), all.x = TRUE)
+  tests[, cases_plus_negatives := (people_total_week - people_positives_week + cases_week_avg * 7)]
+  tests[, `:=`(cases_rate = cases_week_avg * 7 / cases_plus_negatives,
+               cases_plus_negatives_daily = people_total - people_positives + cases)]
+  tests[, cases_rate_daily := cases / cases_plus_negatives_daily]
+           
+  ## Compute unique negatives
+  
+  # compute unique negative cases ------------------------------------------------------------
+  message("Computing unique negatives.")
+  
+  negative_cases <- rbind(all_tests_with_id, mol_anti)[
+    date>=first_day & result == "negative" &
+             testType %in% test_types]
+  negative_cases <- negative_cases[order(date)]
+  negative_cases <- negative_cases[, .SD[1], keyby = .(testType, patientId)]
+  negative_cases[, patientId:=NULL]
+  negative_cases[, result:=NULL]
+  negative_cases <- negative_cases[, .(negative_cases = .N), keyby = .(testType, date)]
+  negative_cases <- negative_cases[order(testType, date)]
+    
+  # Compute daily weekly average and add to negative_cases data frame
+  # but first make sure all dates are included
+  negative_cases <-  merge(tests[, .(testType, date)], negative_cases, by = c("testType", "date"), all.x = TRUE)
+  negative_cases[, negative_cases := replace_na(negative_cases, 0)]
+    
+  # compute daily weekly average and add to negative_cases data frame
+  negative_cases[, negative_cases_week_avg := ma7(negative_cases), by = "testType"]
+  
+  ## add new cases and weekly average to tests data frame
+  tests <- merge(tests, negative_cases, by = c("testType", "date"), all.x=TRUE)
+  
+  ## the following are diagnostic plots
+  if(FALSE){
+    library(scales)
+    
+    source("dashboard/functions.R")
+    lag_to_complete <- 7
+    last_day <- today() - days(lag_to_complete)
+    
+    ## check positivity rate
+    
+    plot_positivity(tests, first_day, today(), type = "Molecular") +
+      geom_smooth(method = "loess", formula = "y~x", span = 0.05, method.args = list(degree = 1, weight = tests$tests), color = "red", lty =2, fill = "pink") 
+    
+    plot_positivity(tests, first_day, today(), type = "Molecular") 
+    ## check test plot
+    plot_test(tests, first_day, today())
+    plot_test(tests, first_day, today(), type  = "Antigens")
+    plot_test(tests, first_day, today(), type  = "Molecular+Antigens")
+  
+    ## check cases plot
+    ys <- TRUE
+    plot_cases(cases, yscale = ys)
+    plot_cases(cases, first_day, today(), type  = "Antigens", yscale = ys)
+    plot_cases(cases, first_day, today(), type  = "Molecular+Antigens", yscale = ys)
+    
+  }
 
 } else{ load(file.path(rda_path, "data.rda"))} ## if no new records, tests or cases not created so need to load
 
