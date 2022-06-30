@@ -32,10 +32,12 @@ age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
 all_tests_with_id <- readRDS(file.path(rda_path, "all_tests_with_id.rds"))
 
 all_tests_with_id [, `:=`(
-  age_start = as.numeric(str_extract(ageRange, "^\\d+")),
-  age_end = as.numeric(str_extract(ageRange, "\\d+$")))]
+  age_start = as.numeric(str_extract(as.character(ageRange), "^\\d+")),
+  age_end = as.numeric(str_extract(as.character(ageRange), "\\d+$")))]
 all_tests_with_id[, ageRange := factor(age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))], levels = age_levels)]
-
+all_tests_with_id$ageRange <- forcats::fct_explicit_na(all_tests_with_id$ageRange, "No reportada")
+all_tests_with_id[,age_start:=NULL]
+all_tests_with_id[,age_end:=NULL]
 
 test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 original_test_types <- c("Molecular", "Antigens")
@@ -78,8 +80,9 @@ rezago <- rezago[!is.na(diff), .(testType, date, Resultado, diff)]
 ## compute daily totals bt region
 
 all_dates <- CJ(testType = test_types, 
-                region = factor(levels(all_tests_with_id$region)),
+                region = levels(all_tests_with_id$region),
                 date =  seq(first_day, max(all_tests_with_id$date), by = "day"))
+all_dates$region <- factor(all_dates$region, levels = levels(all_tests_with_id$region))
 
 tests_by_region <- rbind(all_tests_with_id, mol_anti)[date >= first_day & 
            testType %in% test_types & 
@@ -96,7 +99,7 @@ tests_by_region[, rate :=  people_positives / people_total]
 ## and use this to compute percent of people with positive tests
 
 positivity <- function(dat){
-  dat<-copy(dat)
+  dat <- copy(dat)
   day_seq <- seq(first_day + weeks(1), max(dat$date), by = "day")
   res <- lapply(day_seq, function(the_day){
     tmp <- dat[date > the_day - weeks(1) & date <= the_day]
@@ -189,18 +192,17 @@ tests_by_region <- merge(tests_by_region, negative_cases_by_region, by = c("test
 pop_by_region <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/main/dashboard/data/poblacion-region.csv",
                           skip = 1, col_names = c("rn", "region", "poblacion")) %>% 
   select(region, poblacion) %>%
-  mutate(region = factor(region, levels = region[order(poblacion, decreasing = TRUE)]))
-
-tests_by_region$region <- factor(as.character(tests_by_region$region), 
-                                 levels = c(levels(pop_by_region$region), "No reportada"))
+  mutate(region = factor(region, levels = levels(tests_by_region$region)))
 
 ## By Age
 
 message("Computing by age statistics.")
 
 all_dates <- CJ(testType = test_types, 
-                ageRange = factor(age_levels),
+                ageRange = levels(all_tests_with_id$ageRange),
                 date =  seq(first_day, max(all_tests_with_id$date), by = "day"))
+
+all_dates$ageRange <- factor(all_dates$ageRange, levels = levels(all_tests_with_id$ageRange))
 
 
 ## compute daily totals
@@ -232,7 +234,9 @@ tests_by_age[, (cols) := lapply(.SD, replace_na, 0), .SDcols = cols]
 
 ## compute weekly totals for positive tests and total tests
 tests_by_age[, `:=`(tests_positives_week = sum7(tests_positives),
-                       tests_total_week = sum7(tests_total)), by = c("testType", "ageRange")]
+                    tests_total_week = sum7(tests_total),
+                    tests_week_avg = ma7(tests_total)), 
+             by = c("testType", "ageRange")]
 
 # compute unique cases ------------------------------------------------------------
 
@@ -315,9 +319,17 @@ deaths_by_age <- deaths %>%
 
 message("Saving data.")
 
+rezago<- as.data.frame(rezago)
 save(rezago, file = file.path(rda_path, "rezago.rda"))
 
+tests_by_region <- as.data.frame(tests_by_region)
+pop_by_region <- as.data.frame(pop_by_region)
+
 save(tests_by_region, pop_by_region, file = file.path(rda_path, "regions.rda"))
+
+deaths_by_age <- as.data.frame(deaths_by_age)
+tests_by_age <- as.data.frame(tests_by_age)
+pop_by_age <- as.data.frame(pop_by_age)
 
 save(deaths_by_age, tests_by_age, pop_by_age, file = file.path(rda_path, "by-age.rda"))
 

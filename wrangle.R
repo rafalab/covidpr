@@ -457,20 +457,27 @@ rezago_mort <- bioportal_deaths %>%
 ## define date and time of latest download
 the_stamp <- now(tzone="America/Puerto_Rico")
 
+tests <- as.data.frame(tests)
+cases <- as.data.frame(cases)
+hosp_mort <- as.data.frame(hosp_mort)
+
 save(first_day, last_complete_day, added_records,
      alpha, the_stamp, 
      tests, cases,
      hosp_mort, pr_pop, 
      file = file.path(rda_path, "data.rda"))
 
+reinfections <- as.data.frame(reinfections)
 save(reinfections,  file = file.path(rda_path, "reinfections.rda"))
 
      ## save this as backup in case salud dashboard down
 save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
+rezago_mort <- as.data.frame(rezago_mort)
 save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 
 ## for use in wrangle-by-strata.R
+deaths <- as.data.frame(deaths)
 save(deaths, last_complete_day, file = file.path(rda_path, "deaths.rda"))
 
 if(added_records>0) saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"))
