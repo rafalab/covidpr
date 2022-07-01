@@ -788,7 +788,7 @@ make_municipio_table <- function(tests_by_strata,
 #   return(ret)
 # }
 
-plot_rezago <- function(rezago, rezago_mort,
+  plot_rezago <- function(rezago, rezago_mort,
                         start_date = first_day, 
                         end_date = last_complete_day, 
                         type = "Molecular", 
@@ -1280,8 +1280,9 @@ summary_by_age <- function(tests_by_age,
   version <- match.arg(version)
   
   reinfections <-  reinfections %>% 
-    filter(reinfection & testType == type & !is.na(ageRange) &
+    filter(reinfection & testType == type & ageRange!="No reportada" &
              date >= start_date & date <= end_date) %>%
+    mutate(ageRange = droplevels(ageRange)) %>%
     select(-reinfection) %>% 
     rename(reinfections = cases) %>%
     arrange(date) %>%
@@ -1289,9 +1290,12 @@ summary_by_age <- function(tests_by_age,
     mutate(reinfections_week_avg = stats::filter(reinfections, rep(1/7, 7), side = 1)) %>%
     ungroup()
   
+  pop_by_age$ageRange <- droplevels(pop_by_age$ageRange)
+  
   dat <- tests_by_age %>%
-    filter(testType == type & !is.na(ageRange) &
+    filter(testType == type & ageRange!="No reportada" &
              date >= start_date & date <= end_date) %>%
+    mutate(ageRange = droplevels(ageRange)) %>%
     mutate(cases_rate_lower = get_ci_lower(cases_plus_negatives, cases_rate),
            cases_rate_upper = get_ci_upper(cases_plus_negatives, cases_rate)) %>%
     left_join(reinfections, by = c("date", "ageRange")) %>%
