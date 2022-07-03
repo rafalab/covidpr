@@ -84,7 +84,6 @@ all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
 all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
 rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
 
-all_tests_with_id <- distinct(all_tests_with_id)
 
 message("Processing case data.")
 all_tests_with_id[, result := factor(tolower(result))]
@@ -123,6 +122,8 @@ all_tests_with_id[, date := fifelse(is.na(collectedDate), reportedDate - days(im
 all_tests_with_id[, date := as_date(fifelse(!year(date) %in% the_years, reportedDate - days(imputation_delay),  date))]
 all_tests_with_id <- all_tests_with_id[year(date) %in% the_years & date <= today()]
 all_tests_with_id <- all_tests_with_id[order(date, reportedDate)]
+
+all_tests_with_id <- distinct(all_tests_with_id)
 
 saveRDS(all_tests_with_id , file = file.path(rda_path, "all_tests_with_id.rds"))
 
