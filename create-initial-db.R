@@ -26,7 +26,7 @@ icu_beds <- 229 #if available beds is missing change to this
 
 first_day <- make_datetime(2020, 3, 12, 0, 0, 0, tz= "America/Puerto_Rico")
 
-last_day <- make_datetime(2022, 6, 30, 0, 0, 0, tz= "America/Puerto_Rico")
+last_day <- now(tz= "America/Puerto_Rico") + days(1)
 
 the_years <- seq(2020, year(today()))
 
