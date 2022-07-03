@@ -43,11 +43,13 @@ message("Loading previous dataset.")
 
 prev_all_tests_with_id <- readRDS(file = file.path(rda_path, "all_tests_with_id.rds"))
 
-molecular_last_download <- max(prev_all_tests_with_id[testType == "Molecular"]$orderCreatedAt) |>
+#molecular_last_download <- max(prev_all_tests_with_id[testType == "Molecular"]$orderCreatedAt) |>
+molecular_last_download <- as_datetime(today(tz= "America/Puerto_Rico") - days(10)) |>
   with_tz(tzone = "GMT") |>
   format("%Y-%m-%dT%H:%M:%SZ")
 
-antigen_last_download <- max(prev_all_tests_with_id[testType == "Antigens"]$orderCreatedAt) |>
+#antigen_last_download <- max(prev_all_tests_with_id[testType == "Antigens"]$orderCreatedAt) |>
+antigen_last_download <- as_datetime(today(tz= "America/Puerto_Rico") - days(10)) |>
   with_tz(tzone = "GMT") |>
   format("%Y-%m-%dT%H:%M:%SZ")
 
@@ -316,7 +318,9 @@ if(added_records>0){
     
   }
 
-} else{ load(file.path(rda_path, "data.rda"))} ## if no new records, tests or cases not created so need to load
+} else{ 
+  load(file.path(rda_path, "data.rda"))
+} ## if no new records, tests or cases not created so need to load
 
 # --Mortality and hospitlization
 # use old handmade database to fill in the blanks
@@ -467,10 +471,12 @@ save(first_day, last_complete_day, added_records,
      hosp_mort, pr_pop, 
      file = file.path(rda_path, "data.rda"))
 
-reinfections <- as.data.frame(reinfections)
-save(reinfections,  file = file.path(rda_path, "reinfections.rda"))
+if(added_records>0){
+  reinfections <- as.data.frame(reinfections)
+  save(reinfections,  file = file.path(rda_path, "reinfections.rda"))
+}
 
-     ## save this as backup in case salud dashboard down
+## save this as backup in case salud dashboard down
 save(hosp_mort, file = file.path(rda_path, "hosp_mort.rda"))
 
 rezago_mort <- as.data.frame(rezago_mort)
@@ -480,7 +486,5 @@ save(rezago_mort, file = file.path(rda_path, "rezago_mort.rda"))
 deaths <- as.data.frame(deaths)
 save(deaths, last_complete_day, file = file.path(rda_path, "deaths.rda"))
 
-if(added_records>0) saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"))
-
-
+#if(added_records>0) saveRDS(all_tests_with_id, file = file.path(rda_path, "all_tests_with_id.rds"))
 
