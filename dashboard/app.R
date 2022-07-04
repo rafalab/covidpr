@@ -684,13 +684,28 @@ server <- function(input, output, session) {
    
     load(file.path(rda_path, "lab_tab.rda"))
     
+    if(input$testType == "Molecular+Antigens"){
+      lab_tab <- full_join(select(filter(lab_tab, testType %in% c("Molecular")), -testType),
+                       select(filter(lab_tab, testType %in% c("Antigens")), -testType), 
+                       by = c("date", "Laboratorio")) %>%
+        replace_na(list(tests.x=0, tests.y=0)) %>%
+        mutate(tests = tests.x+tests.y) %>%
+        mutate(testType = "Molecular+Antigens") %>%
+        select(testType, date, Laboratorio, tests)
+    }
+    
     ret <- make_lab_tab(lab_tab,
                         input$range[1],
                         input$range[2],
                         input$testType)
-                        
-   DT::datatable(ret,   
-                 caption =  paste0("Número de pruebas reportadas por los Laboratorios y Hospitales para los días: ",
+    
+    
+    type_char <- case_when(input$testType == "Molecular" ~ "moleculares", 
+                           input$testType== "Antigens" ~ "de antígeno",
+                           input$testType == "Molecular+Antigens" ~ "moleculares o de antígenos")
+    
+    DT::datatable(ret,   
+                 caption =  paste0("Número de pruebas ", type_char," reportadas por los Laboratorios y Hospitales para los días: ",
                                    format(input$range[1], "%Y %B %d"),
                                    " a ",
                                    format(input$range[2],  "%Y %B %d.")),
