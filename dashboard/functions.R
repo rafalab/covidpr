@@ -323,6 +323,68 @@ plot_cases <- function(cases,
   return(ret)
 }
 
+
+
+plot_reinfections <- function(cases, 
+                              start_date = first_day, 
+                              end_date = last_complete_day, 
+                              type = "Molecular", 
+                              cumm = FALSE,
+                              yscale = TRUE,
+                              title = "Por ciento de casos que son reinfecciones"){
+  if(cumm){
+    ret <- cases %>% 
+      filter(testType == type) %>%
+      mutate(new = cumsum(new),
+             reinfection = cumsum(reinfection)) %>%
+      mutate(percent_reinfection = reinfection/(reinfection + new)) %>%
+      filter(date >= start_date & date <= end_date) %>%
+      ggplot(aes(date, percent_reinfection)) +
+      geom_line(fill = "#FBBCB2") +
+      labs(title = paste(title, "(acumulados)"),
+           subtitle= paste("Basado en pruebas", 
+                           case_when(type == "Molecular" ~ "moleculares", 
+                                     type == "Serological" ~ "serológicas",
+                                     type == "Antigens" ~ "de antígenos",
+                                     type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) +
+      ylab(title) +
+      xlab("Fecha") +
+      scale_y_continuous(labels = scales::percent) +
+      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      theme_bw()
+  } else{
+    
+    cases <- cases %>%
+      filter(testType == type & date >= start_date & date <= end_date) %>%
+      mutate(percent_reinfection = reinfection / (reinfection + new),
+             percent_reinfection_week_avg = reinfection_week_avg  / (reinfection_week_avg  + new_week_avg)) 
+    ret <- cases %>%
+      ggplot(aes(x = date)) +
+      ylab(title) +
+      xlab("Fecha") +
+      labs(title = title, 
+           subtitle = paste("Basado en pruebas",
+                            case_when(type == "Molecular" ~ "moleculares", 
+                                      type == "Serological" ~ "serológicas",
+                                      type == "Antigens" ~ "de antígenos",
+                                      type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) +
+      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      theme_bw() + 
+      geom_point(aes(y = percent_reinfection), color = "#FBBCB2", alpha = 0.5) +
+      geom_line(aes(y = percent_reinfection_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) + 
+      theme(legend.position = "none") + scale_y_continuous(labels = scales::percent,  n.breaks  = 10)
+    if(yscale){
+      ymax <- pmin(1, max(filter(cases,testType == type)$percent_reinfection_week_avg, na.rm=TRUE)*1.05)
+      ret <- ret + scale_y_continuous(labels = scales::percent,  n.breaks  = 10, limits = c(0, ymax))
+      print(ymax)  
+    } else{
+      ret <- ret + scale_y_continuous(labels = scales::percent,  n.breaks  = 10)
+    }
+   
+  }
+  return(ret)
+}
+
 plot_test <- function(tests, 
                       start_date = first_day, 
                       end_date = last_complete_day, 
@@ -1273,22 +1335,19 @@ summary_by_age <- function(tests_by_age,
                            cumm = FALSE,
                            yscale = TRUE,
                            version = c("tp_pruebas", "tp_casos", "casos_per", "casos", 
-                                       "reinfecciones", "reinfecciones_per",
+                                       "reinfecciones", 
                                        "pruebas_per", "pruebas", "deaths_per", "deaths"),
                            facet = TRUE){
   
   version <- match.arg(version)
   
   reinfections <-  reinfections %>% 
-    filter(reinfection & testType == type & ageRange!="No reportada" &
+    filter(testType == type & ageRange!="No reportada" &
              date >= start_date & date <= end_date) %>%
-    mutate(ageRange = droplevels(ageRange)) %>%
-    select(-reinfection) %>% 
-    rename(reinfections = cases) %>%
-    arrange(date) %>%
-    group_by(ageRange) %>%
-    mutate(reinfections_week_avg = stats::filter(reinfections, rep(1/7, 7), side = 1)) %>%
-    ungroup()
+    mutate(ageRange = droplevels(ageRange),
+           percent_reinfection = reinfection / (new + reinfection),
+           percent_reinfection_week_avg = reinfection_week_avg / (new_week_avg + reinfection_week_avg)) %>%
+    select(ageRange, date, new, reinfection, percent_reinfection, percent_reinfection_week_avg)
   
   pop_by_age$ageRange <- droplevels(pop_by_age$ageRange)
   
@@ -1317,8 +1376,10 @@ summary_by_age <- function(tests_by_age,
              cases_rate_upper = get_ci_upper(negative_cases + cases, cases_rate),
              cases_week_avg = cases,
              people_total_week = people_total,
-             reinfections = cumsum(replace_na(reinfections,0)),
-             reinfections_week_avg = reinfections,
+             reinfection = cumsum(replace_na(reinfection,0)),
+             new = cumsum(replace_na(new,0)),
+             percent_reinfection = reinfection/(reinfection+new),
+             reinfection_week_avg = reinfection,
              deaths = cumsum(replace_na(deaths, 0)),
              deaths_week_avg = deaths,
              tests_total = cumsum(replace_na(tests_total, 0)),
@@ -1377,24 +1438,15 @@ summary_by_age <- function(tests_by_age,
   
   if(version == "reinfecciones"){
     tab <- dat %>% 
-      mutate(the_stat = dynamic_round(reinfections_week_avg, min_round = 100)) %>%
+      mutate(the_stat = make_pct(percent_reinfection_week_avg)) %>%
       select(date, ageRange, the_stat)
     dat <- dat %>% 
-      rename(the_stat = reinfections_week_avg, daily_stat = reinfections) 
-    var_title <- "Reinfecciones por día"
-    the_ylim <- c(0, pmax(50, max(dat$daily_stat, na.rm = TRUE)))
-  }
-  
-  if(version == "reinfecciones_per"){
-    tab <- dat %>% 
-      mutate(the_stat = reinfections_week_avg/poblacion*10^5) %>%
-      mutate(the_stat = ifelse(is.na(the_stat), "", format(round(the_stat, 1), nsmall = 1))) %>%
-      select(date, ageRange, the_stat)
-    dat <- dat %>% 
-      mutate(reinfections_week_avg = reinfections_week_avg/poblacion*10^5, reinfections = reinfections/poblacion*10^5) %>%
-      rename(the_stat = reinfections_week_avg, daily_stat = reinfections) 
-    var_title <- "Reinfecciones por día por 100,000 habitantes"
-    the_ylim <- c(0, pmax(8, max(dat$daily_stat, na.rm = TRUE)))
+      rename(the_stat = percent_reinfection_week_avg, daily_stat = percent_reinfection) 
+    var_title <- "Por ciento de casos que son reinfecciones"
+    the_ylim <- c(0, 
+                  pmin(1, max(dat$the_stat, na.rm=TRUE)*1.05))
+    pct <- TRUE
+
   }
   
   if(version == "pruebas"){
@@ -1509,11 +1561,11 @@ summary_by_age <- function(tests_by_age,
         scale_y_continuous(labels = the_labels)
     }
     
-    if(version %in% c("casos", "casos_per", "reinfecciones", "reinfecciones_per")){ the_color_1 <- "#FBBCB2"; the_color_2 <- "#CC523A"}
+    if(version %in% c("casos", "casos_per", "reinfecciones")){ the_color_1 <- "#FBBCB2"; the_color_2 <- "#CC523A"}
     if(version %in% c("pruebas", "pruebas_per")){ the_color_1 <- "#D1D1E8"; the_color_2 <- "#31347A"}
     if(version %in% c("deaths", "deaths_per")){ the_color_1 <- "grey"; the_color_2 <- "black"}
     
-    if(version %in% c("casos", "casos_per", "reinfecciones", "reinfecciones_per", 
+    if(version %in% c("casos", "casos_per", 
                       "pruebas", "pruebas_per", "deaths", "deaths_per")){
       if(cumm){
         p <- p + 

@@ -149,12 +149,6 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                plotOutput("casos")),
                       
                       tabPanel("Reinfecciones",
-                               radioButtons("reinfections_log",
-                                            label = "Escala:",
-                                            choices = list("Lineal" = FALSE,
-                                                           "Logarítmica" = TRUE),
-                                            selected = FALSE,
-                                            inline = TRUE),
                                plotOutput("reinfecciones")),
 
                       tabPanel("Regiones",
@@ -200,7 +194,6 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                                            "Casos" = "casos",
                                                            "Casos por 100,000" = "casos_per",
                                                            "Reinfecciones" = "reinfecciones",
-                                                           "Reinfecciones por 100,000" = "reinfecciones_per",
                                                            "Pruebas" = "pruebas",
                                                            "Pruebas por 100,000" = "pruebas_per",
                                                            "Muertes" = "deaths",
@@ -569,23 +562,27 @@ server <- function(input, output, session) {
   output$reinfecciones <- renderPlot({
     load(file.path(rda_path, "reinfections.rda"))
     
-    ma7 <- function(d, y, k = 7) tibble(date = d, moving_avg = as.numeric(stats::filter(y, rep(1/k, k), side = 1)))
     
     tab <- reinfections %>% 
-      filter(reinfection) %>%
       group_by(testType, date) %>%
-      summarize(cases=sum(cases), .groups = "drop") %>%
-      group_by(testType) %>%
-      mutate(cases_week_avg = ma7(date, cases)$moving_avg)
+      summarize(new=sum(new), reinfection=sum(reinfection),  
+                new_week_avg=sum(new_week_avg), reinfection_week_avg=sum(reinfection_week_avg), 
+                .groups = "drop") 
     
-    plot_cases(tab, 
+    tab %>% filter(testType=="Molecular+Antigens") %>% 
+      mutate(percent_reinfection = reinfection / (reinfection + new),
+             percent_reinfection_week_avg = reinfection_week_avg  / (reinfection_week_avg  + new_week_avg)) %>%
+    
+      ggplot(aes(date, percent_reinfection)) + 
+      geom_point() +
+      geom_line(aes(y=percent_reinfection_week_avg))
+    
+    plot_reinfections(tab, 
                start_date = input$range[1], 
                end_date = input$range[2], 
                type =  input$testType,
                cumm = as.logical(input$acumulativo), 
-               yscale = as.logical(input$yscale),
-               log.scale = as.logical(input$reinfections_log),
-               title = "Reinfecciones")
+               yscale = as.logical(input$yscale))
   })
   
   # by region stats ---------------------------------------------------------

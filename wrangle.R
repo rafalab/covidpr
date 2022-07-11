@@ -231,19 +231,28 @@ if(added_records>0){
                         reinfections, all.x = TRUE, 
                         by = c("testType",  "ageRange", "reinfection", "date"))
   reinfections[, cases := replace_na(cases, 0)]
-  reinfections <- reinfections[order(testType, ageRange, cases, reinfection)]
+  reinfections[, reinfection := fifelse(reinfection, "reinfection", "new")]
+  reinfections <- dcast(reinfections, ...  ~ reinfection, value.var = "cases", fill = 0)
+  reinfections <- reinfections[order(testType, date, ageRange)]
+  reinfections[, new_week_avg := ma7(new), keyby = c("testType", "ageRange")]
+  reinfections[, reinfection_week_avg := ma7(reinfection), keyby = c("testType", "ageRange")]
   
   if(FALSE){
     ##check with plot
   
-    reinfections %>% filter(testType ==  "Molecular+Antigens" & reinfection) %>%
-      ggplot(aes(date, cases)) + geom_col() + facet_wrap(~ageRange)
+    reinfections %>% filter(testType ==  "Molecular+Antigens") %>%
+      ggplot(aes(date, reinfection)) + geom_col() + geom_line(aes(y=reinfection_week_avg)) + facet_wrap(~ageRange)
   
+    reinfections %>% filter(testType ==  "Molecular+Antigens") %>%
+      ggplot(aes(date, reinfection/(new+reinfection))) + geom_col() + 
+      geom_line(aes(y=reinfection_week_avg/(new_week_avg+reinfection_week_avg))) +
+                  facet_wrap(~ageRange)
+    
     reinfections %>% 
       filter(date>=make_date(2021,7,1)) %>%
-      filter(testType ==  "Molecular+Antigens" & reinfection) %>%
+      filter(testType ==  "Molecular+Antigens") %>%
       group_by(date) %>%
-      summarize(cases=sum(cases), .groups = "drop") %>% 
+      summarize(cases=sum(reinfection), .groups = "drop") %>% 
       ggplot(aes(date, cases)) + 
       geom_col() +
       theme_bw()
