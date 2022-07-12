@@ -1378,13 +1378,14 @@ summary_by_age <- function(tests_by_age,
              people_total_week = people_total,
              reinfection = cumsum(replace_na(reinfection,0)),
              new = cumsum(replace_na(new,0)),
-             percent_reinfection = reinfection/(reinfection+new),
-             reinfection_week_avg = reinfection,
              deaths = cumsum(replace_na(deaths, 0)),
              deaths_week_avg = deaths,
              tests_total = cumsum(replace_na(tests_total, 0)),
              tests_week_avg = tests_total) %>%
-      ungroup()
+      ungroup() %>%
+      mutate(percent_reinfection = reinfection/(reinfection+new),
+             percent_reinfection_week_avg = percent_reinfection) 
+     
   }
   
   type_char <- case_when(type == "Molecular" ~ "molecular", 
