@@ -84,7 +84,11 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                   
                   # Show a plot of the generated distribution
                   mainPanel(
-                    
+                    # h3(" Ojo: Este dashboard no se está actualizando desde julio 13
+                    #        debido a que la fuente de datos, el BioPortal, 
+                    #        no está disponible. No conocemos la razón. 
+                    #        Cualquier pregunta debe ser dirigida al 
+                    #        Departamento de Salud."),
                     tabsetPanel(id = "tabs",
                       
                       tabPanel("Resumen",
