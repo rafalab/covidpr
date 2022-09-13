@@ -42,29 +42,10 @@ message("Downloading dataset.")
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
 cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
 
-first_day<- first_day |>
-  with_tz(tzone = "GMT") |>
-  format("%Y-%m-%dT%H:%M:%SZ")
 
+the_days <- unique(c(first_day, make_date(the_years[-1], 1, 1), last_day))
+the_days <- the_days |> with_tz(tzone = "GMT") |> format("%Y-%m-%dT%H:%M:%SZ")
 
-last_day<- last_day |>
-  with_tz(tzone = "GMT") |>
-  format("%Y-%m-%dT%H:%M:%SZ")
-  
-
-cases_url_molecular <-  paste0(cases_url, 
-                               "?testType=Molecular",
-                               "&createdAtStartDate=",
-                               first_day,
-                               "&createdAtEndDate=",
-                               last_day)
-
-cases_url_antigens <- paste0(cases_url, 
-                             "?testType=Antigens",
-                             "&createdAtStartDate=",
-                             first_day,
-                             "&createdAtEndDate=",
-                             last_day)
 
 get_bioportal <- function(url){
   setDT(jsonlite::fromJSON(
@@ -76,14 +57,21 @@ get_bioportal <- function(url){
 
 original_test_types <- c("Molecular", "Antigens")
 
+tmp <- merge(data.frame(test_type = original_test_types), 
+             data.frame(start = head(the_days, -1), end =  tail(the_days,-1)))
+
+## Define the queries
+queries <- apply(tmp, 1, function(x)
+  paste0(cases_url,
+         "?testType=", x[1],
+         "&createdAtStartDate=", x[2], "&createdAtEndDate=", x[3]))
+
+
 # Reading and wrangling cases data from database ---------------------------
 message("Reading case data.")
 
-all_tests_with_id_molecular <- get_bioportal(cases_url_molecular)
-all_tests_with_id_antigens <- get_bioportal(cases_url_antigens)
-all_tests_with_id <- rbind(all_tests_with_id_molecular, all_tests_with_id_antigens)
-rm(all_tests_with_id_molecular, all_tests_with_id_antigens); gc(); gc()
-
+all_tests_with_id <- lapply(queries, get_bioportal)
+all_tests_with_id <- do.call(rbind, all_tests_with_id) |> unique() ##unique removes duplicate rows
 
 message("Processing case data.")
 all_tests_with_id[, result := factor(tolower(result))]
