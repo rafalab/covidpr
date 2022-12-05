@@ -56,7 +56,8 @@ antigen_last_download <- as_datetime(today(tz= "America/Puerto_Rico") - days(10)
 #createdAtStartDate=03-12-2020T04:00:00Z&createdAtEndDate=06-15-2022T04:00:00Z
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
-cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
+#cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
+cases_url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/orders/basic"
 
 cases_url_molecular <-  paste0(cases_url, 
                                "?testType=Molecular", 
@@ -416,7 +417,8 @@ age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
 
 message("Computing Deaths")
 
-url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
+#url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
+url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/deaths/summary"
 
 bioportal_deaths <- jsonlite::fromJSON(url) %>%
   mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%

@@ -1863,6 +1863,14 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   hos <- slice(hos, -1)
   change_hos <- change_hos[-1]
   
+  mort <- hosp_mort %>% select(date, mort_week_avg) %>% 
+    filter(!is.na(mort_week_avg)) %>%
+    filter(date >= day - weeks(1)) %>%
+    pull(mort_week_avg) %>%
+    max()
+  
+  mort <- paste(dynamic_round(mort), arrows[change_mor[1]+2])
+  
   #vacunas <- paste(make_pct(vac$pct_fully_vaccinated[1]),  no_arrow)
   #una_dosis <- paste(make_pct(vac$pct_one_dose[1]),  no_arrow)
   una_dosis <- paste(make_pct(vacunas_summary_tab%>%filter(names=="Personas con por lo menos 1 dosis") %>% pull(porciento)),  no_arrow)
@@ -1906,7 +1914,8 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   
   return(list(tab = tab, 
               positividad = positividad, casos_positividad = casos_positividad, 
-              casos = casos, hosp = hosp, una_dosis = una_dosis, vacunas = vacunas, vacuna_al_dia = vacuna_al_dia,
+              casos = casos, hosp = hosp, mort = mort,
+              una_dosis = una_dosis, vacunas = vacunas, vacuna_al_dia = vacuna_al_dia,
               dias_hasta_meta_vacunas = dias_hasta_meta_vacunas))
   
 }

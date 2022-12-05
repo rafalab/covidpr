@@ -32,7 +32,8 @@ imputation_delay  <- 2
 alpha <- 0.05
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
-test_url <- "https://bioportal.salud.pr.gov/api/administration/reports/minimal-info-unique-tests"
+#test_url <- "https://bioportal.salud.pr.gov/api/administration/reports/minimal-info-unique-tests"
+test_url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/minimal-info-unique-tests"
 
 test_url_molecular <- paste0(test_url,"?testType=Molecular")
 test_url_antigens <- paste0(test_url,"?testType=Antigens")

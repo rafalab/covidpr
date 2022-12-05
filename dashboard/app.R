@@ -222,10 +222,10 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                               style = button_style),
                                DT::dataTableOutput("labs")),
 
-                      tabPanel("Vacunas",
-                              HTML('<br><h4>Esta información ahora esta disponible en el dashboard de vacunas:
-                                   <a href="http://vacunas.covidpr.info/">http://vacunas.covidpr.info/</a></h4><hr>')),
-                              # plotOutput("vaccines"),
+                      # tabPanel("Vacunas",
+                      #         HTML('<br><h4>Esta información ahora esta disponible en el dashboard de vacunas:
+                      #              <a href="http://vacunas.covidpr.info/">http://vacunas.covidpr.info/</a></h4><hr>')),
+                      #         # plotOutput("vaccines"),
                                #DT::dataTableOutput("vaccines_table")),
 
                       # tabPanel("Viajeros",
@@ -360,9 +360,10 @@ server <- function(input, output, session) {
       "<tr><td>Tasa de positividad (casos):</td><td align=\"right\">&emsp;", res()$casos_positividad, "</td></tr>", #, "&emsp;", 
       "<tr><td>Casos nuevos por día:</td><td align=\"right\">&emsp;", res()$casos, "</td></tr>",
       "<tr><td>Hospitalizaciones:</td><td align=\"right\">&emsp;", res()$hosp, "</td></tr>",
-      "<tr><td>% con vacunación al día:</td><td align=\"right\">&emsp;", res()$vacuna_al_dia, "</td></tr>",
-      "<tr><td>% por lo menos 1 dosis:</td><td align=\"right\">&emsp;", res()$una_dosis, "</td></tr>",
-      "<tr><td>% con serie primaria completa:</td><td align=\"right\">&emsp;", res()$vacunas, "</td></tr></table>")
+      "<tr><td>Muertes por día:</td><td align=\"right\">&emsp;", res()$mort, "</td></tr></table>")
+#      "<tr><td>% con vacunación al día:</td><td align=\"right\">&emsp;", res()$vacuna_al_dia, "</td></tr>",
+#      "<tr><td>% por lo menos 1 dosis:</td><td align=\"right\">&emsp;", res()$una_dosis, "</td></tr>",
+ #     "<tr><td>% con serie primaria completa:</td><td align=\"right\">&emsp;", res()$vacunas, "</td></tr></table>")
       #"<tr><td>Días para alcanzar 70%:</td><td align=\"right\">&emsp;", res()$dias_hasta_meta_vacunas, "</td></tr></table>")
   })
   

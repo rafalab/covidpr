@@ -192,6 +192,12 @@ El Departamento de Salud dejó de compartir esos datos sin explicación.
 
 </details>
 
+<details><summary>¿Qué paso con la pestaña y datos de vacunados? </summary>
+
+Hasta donde sabemos, El Departamento de Salud no está compartiendo datos de la vacuna más reciente, por lo cual no podemos estimatar el por ciento de la población con vacunación al día.
+
+</details>
+
 <details><summary>¿Qué hago si tengo más preguntas?</summary>
 
 Pueden hacer preguntas por Twitter: [@rafalab](https://twitter.com/rafalab)
