@@ -56,7 +56,7 @@ tmp <- merge(data.frame(test_type = original_test_types),
 
 ## Define the queries
 queries <- apply(tmp, 1, function(x)
-  paste0(cases_url,
+  paste0(test_url,
          "?testType=", x[1],
          "&createdAtStartDate=", x[2], "&createdAtEndDate=", x[3]))
 
