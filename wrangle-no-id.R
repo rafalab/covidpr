@@ -51,6 +51,7 @@ get_bioportal <- function(url){
 }
 
 original_test_types <- c("Molecular", "Antigens")
+test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 
 tmp <- merge(data.frame(test_type = original_test_types), 
              data.frame(start = head(the_days, -1), end =  tail(the_days,-1)))
