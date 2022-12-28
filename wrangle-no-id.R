@@ -35,31 +35,37 @@ alpha <- 0.05
 #test_url <- "https://bioportal.salud.pr.gov/api/administration/reports/minimal-info-unique-tests"
 test_url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/minimal-info-unique-tests"
 
-test_url_molecular <- paste0(test_url,"?testType=Molecular")
-test_url_antigens <- paste0(test_url,"?testType=Antigens")
+the_days <- unique(c(first_day, make_date(the_years[-1], 1, 1), last_day))
+the_days <- the_days |> with_tz(tzone = "GMT") |> format("%Y-%m-%dT%H:%M:%SZ")
+
 
 get_bioportal <- function(url){
-  jsonlite::fromJSON(
+  setDT(jsonlite::fromJSON(
     rawToChar(
       httr::GET(url, httr::content_type('application/json'),
                 httr::add_headers('Accept-Enconding'="br"))$content)
-  )
+  ))
 }
 
-#test_types <- c("Molecular", "Serological", "Antigens", "Molecular+Antigens")
-#original_test_types <- c("Molecular", "Serological", "Antigens")
-test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 original_test_types <- c("Molecular", "Antigens")
 
-# Reading and wrangling test data from database ----------------------------------------------
-message("Reading test data.")
+tmp <- merge(data.frame(test_type = original_test_types), 
+             data.frame(start = head(the_days, -1), end =  tail(the_days,-1)))
 
-all_tests_molecular <- get_bioportal(test_url_molecular)
-all_tests_antigens <- get_bioportal(test_url_antigens)
-all_tests <- rbind(all_tests_molecular, all_tests_antigens)
-rm(all_tests_molecular, all_tests_antigens); gc(); gc()
+## Define the queries
+queries <- apply(tmp, 1, function(x)
+  paste0(cases_url,
+         "?testType=", x[1],
+         "&createdAtStartDate=", x[2], "&createdAtEndDate=", x[3]))
 
-message("Processing test data.")
+
+# Reading and wrangling cases data from database ---------------------------
+message("Reading case data.")
+
+all_tests <- lapply(queries, get_bioportal)
+all_tests <- do.call(rbind, all_tests) |> unique() ##unique removes duplicate rows
+
+message("Processing case data.")
 
 all_tests <- all_tests %>%  
   rename(patientCity = city) %>%
