@@ -40,7 +40,8 @@ alpha <- 0.05
 message("Downloading dataset.")
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
-cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
+#cases_url <- "https://bioportal.salud.pr.gov/api/administration/reports/orders/basic"
+cases_url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/orders/basic"
 
 
 the_days <- unique(c(first_day, make_date(the_years[-1], 1, 1), last_day))
