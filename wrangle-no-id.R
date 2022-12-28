@@ -2,6 +2,7 @@
 # -- Libraries   
 library(tidyverse)
 library(lubridate)
+library(data.table)
 library(splines)
 if(grepl("fermat|leo", Sys.info()["nodename"])){
   rda_path <- "/homes10/rafa/dashboard/covidpr/rdas"
