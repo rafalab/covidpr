@@ -20,6 +20,8 @@ sum7 <- function(d, y, k = 7)
 # -- Fixed values
 first_day <- make_date(2020, 3, 12)
 
+last_day <- now(tz= "America/Puerto_Rico") + days(1)
+
 last_complete_day <- today() - 1
 
 the_years <- seq(2020, year(today()))
