@@ -1720,7 +1720,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   ## Hosp
   ## as pos but for hospitalizations
   hos <- hosp_mort %>% select(date, HospitCOV19, hosp_week_avg) %>% 
-    filter() %>%
+    fill(HospitCOV19, hosp_week_avg) %>% ## fill NA weekend NAs with Friday's value.
     filter(date <= day) %>%
     filter(date %in% the_dates)  %>%
     arrange(desc(date))
