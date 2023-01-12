@@ -34,18 +34,22 @@ alpha <- 0.05
 
 # Computing positivity rate by lab ----------------------------------------
 
-url <- "https://bioportal.salud.pr.gov/api/administration/reports/tests-by-collected-date-and-entity"
+#url <- "https://bioportal.salud.pr.gov/api/administration/reports/tests-by-collected-date-and-entity"
 #url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/tests-by-collected-date-and-entity"
+url <- "https://biostatistics.salud.pr.gov/orders/tests/covid-19/grouped-by-sample-collected-date-and-entity"
 
 message("Reading lab data.")
 
 all_labs_data <- jsonlite::fromJSON(url)
 
 labs <- all_labs_data %>%
-  select(-molecular, -serological, -antigens) %>%
-  rename(Laboratorio = entityName,
-         date = collectedDate) %>%
+  select(sampleCollectedDate, entity, totalTestsProcessed, entityCity) %>%
+  rename(Laboratorio = entity,
+         date = sampleCollectedDate,
+         total = totalTestsProcessed,
+         municipio = entityCity) %>%
   mutate(date = as_date(date),
+         municipio = na_if(municipio, "N/A"),
          Laboratorio = str_trim(str_remove_all(tolower(Laboratorio), "\t|inc|\\.|\\,")))
 
 
@@ -81,38 +85,28 @@ labs <- labs %>%
                                  #str_detect(Laboratorio, "southern pathology services") ~ "Southern Pathology",
                                  TRUE ~ "Otros"))
 
-molecular <- all_labs_data$molecular %>% 
-  mutate(testType = "Molecular",
-         positives = positives + presumptivePositives,
-         negatives = negatives,
+molecular <- all_labs_data %>% 
+  mutate(positives = totalMolecularTestsPositive,
+         negatives = totalMolecularTestsNegative,
          tests = positives + negatives) %>%
-  select(testType, positives, tests)
+  select(positives, tests) %>%
+  mutate(testType = "Molecular")
 molecular <- bind_cols(labs, molecular) 
 
-serological <-  all_labs_data$serological %>%
-  mutate(testType = "Serological",
-         positives = positives,
-         negatives = negatives,
-         tests = positives + negatives) %>%
-  select(testType, positives, tests)
-serological <- bind_cols(labs, serological) 
 
-antigens <-  all_labs_data$antigens %>%
-  mutate(testType = "Antigens",
-         positives = positives,
-         negatives = negatives,
+antigens <-  all_labs_data %>% 
+  mutate(positives = totalAntigensTestsPositive,
+         negatives = totalAntigensTestsNegative,
          tests = positives + negatives) %>%
-  select(testType, positives, tests)
+  select(positives, tests) %>%
+  mutate(testType = "Antigens")
+
 antigens <- bind_cols(labs, antigens) 
 
-labs <- bind_rows(molecular, serological, antigens) %>%
+labs <- bind_rows(molecular, antigens) %>%
   filter(date >= first_day & date <= today()) %>%
   group_by(testType, date, Laboratorio) %>%
-  summarize(positives = sum(positives),
-            tests = sum(tests),
-            missing_city = sum(totalMissingCity),
-            missing_phone = sum(totalMissingPhoneNumber),
-            .groups = "drop")
+  summarize(positives = sum(positives), tests = sum(tests), .groups = "drop")
 
 
 lab_positivity <- function(dat){
@@ -141,11 +135,15 @@ labs <- left_join(fits, labs, by = c("testType", "date", "Laboratorio"))
 
 ## For Eddie
 lab_tab <- all_labs_data %>%
-  select(-molecular, -serological, -antigens) %>%
-  rename(Laboratorio = entityName,
-         date = collectedDate) %>%
+  select(sampleCollectedDate, entity, totalTestsProcessed, entityCity) %>%
+  rename(Laboratorio = entity,
+         date = sampleCollectedDate,
+         total = totalTestsProcessed,
+         municipio = entityCity) %>%
   mutate(date = as_date(date),
+         municipio = na_if(municipio, "N/A"),
          Laboratorio = str_trim(str_remove_all(tolower(Laboratorio), "\t|inc|\\.|\\,")))
+
 
 ## wrange some of the names
 lab_tab <- lab_tab %>%
@@ -168,25 +166,25 @@ lab_tab <- lab_tab %>%
                                  str_detect(Laboratorio, "southern pathology services") ~ "Southern Pathology",
                                  TRUE ~ str_replace(str_to_title(Laboratorio), "Ii", "II")))
 
-molecular <- all_labs_data$molecular %>% 
-  mutate(testType = "Molecular",
-         tests = positives + presumptivePositives + negatives) %>%
-  select(testType, tests)
+molecular <- all_labs_data %>% 
+  mutate(positives = totalMolecularTestsPositive,
+         negatives = totalMolecularTestsNegative,
+         tests = positives + negatives) %>%
+  select(positives, tests) %>%
+  mutate(testType = "Molecular")
 molecular <- bind_cols(lab_tab, molecular) 
 
-serological <-  all_labs_data$serological %>%
-  mutate(testType = "Serological",
-         tests = positives + negatives) %>%
-  select(testType, tests)
-serological <- bind_cols(lab_tab, serological) 
 
-antigens <-  all_labs_data$antigens %>%
-  mutate(testType = "Antigens",
+antigens <-  all_labs_data %>% 
+  mutate(positives = totalAntigensTestsPositive,
+         negatives = totalAntigensTestsNegative,
          tests = positives + negatives) %>%
-  select(testType, tests)
+  select(positives, tests) %>%
+  mutate(testType = "Antigens")
+
 antigens <- bind_cols(lab_tab, antigens) 
 
-lab_tab <- bind_rows(molecular, serological, antigens) %>%
+lab_tab <- bind_rows(molecular, antigens) %>%
   filter(date >= first_day & date <= today()) %>%
   group_by(testType, date, Laboratorio) %>%
   summarize(tests = sum(tests),.groups = "drop")
@@ -202,3 +200,4 @@ lab_tab  <- lab_tab %>% group_by(Laboratorio, testType) %>%
 save(labs, file = file.path(rda_path, "labs.rda"))
 
 save(lab_tab, file = file.path(rda_path, "lab_tab.rda"))
+
