@@ -224,7 +224,7 @@ if(added_records>0){
     age_end = as.numeric(str_extract(ageRange, "\\d+$")))] 
   reinfections[, ageRange := factor(age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))], levels = age_levels)]
   reinfections <- reinfections[, .(cases = .N), keyby =  .(testType, ageRange, reinfection, date)]
-  reinfections$ageRange <- forcats::fct_explicit_na(reinfections$ageRange, "No reportada")
+  reinfections$ageRange <- forcats::fct_na_value_to_level(reinfections$ageRange, "No reportada")
    
   reinfections <- merge(CJ(date=seq(first_day, today(), by ="day"), 
                            ageRange = factor(levels(reinfections$ageRange), levels = levels(reinfections$ageRange)),
@@ -420,7 +420,8 @@ message("Computing Deaths")
 #url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
 url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/deaths/summary"
 
-bioportal_deaths <- jsonlite::fromJSON(url) %>%
+bioportal_deaths <- try({
+	jsonlite::fromJSON(url) %>%
   mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
   mutate(date = if_else(date < first_day | date > today(), 
                         as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
@@ -431,6 +432,7 @@ bioportal_deaths <- jsonlite::fromJSON(url) %>%
   mutate(ageRange = factor(ageRange, levels = age_levels)) 
 
 ## replace the death data with latest from dashboard
+})
 
 url <- "https://covid19datos.salud.gov.pr/estadisticas_v2/download/data/defunciones/completo"
 deaths <- try({
@@ -444,8 +446,12 @@ deaths <- try({
 })
 
 if(class(deaths)[1] == "try-error"){
-  ## if no dashboard data replace the death data with BioPortal data 
-  deaths <- bioportal_deaths
+  if(class(bioportal_deaths)[1] == "try-error"){
+	load(file.path(rda_path, "deaths.rda"))
+  } else{
+	## if no dashboard data replace the death data with BioPortal data 
+  	deaths <- bioportal_deaths
+  }
 }
 
 hosp_mort <- deaths %>%
@@ -461,12 +467,16 @@ hosp_mort <- deaths %>%
 
 ## Rezagos muerte
 
-rezago_mort <- bioportal_deaths %>% 
-  filter(!is.na(date)) %>%
-  mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
-  arrange(date, bulletin_date) %>%
-  mutate(diff = (as.numeric(bulletin_date) - as.numeric(date))) %>%
-  select(date, diff)
+if(class(bioportal_deaths)[1] == "try-error"){
+  rezago_mort <- bioportal_deaths %>% 
+  	filter(!is.na(date)) %>%
+  	mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
+  	arrange(date, bulletin_date) %>%
+  	mutate(diff = (as.numeric(bulletin_date) - as.numeric(date))) %>%
+  	select(date, diff)
+} else{
+  load(file.path(rda_path, "rezago_mort.rda"))
+}
 
 ## Save results
 ## define date and time of latest download
