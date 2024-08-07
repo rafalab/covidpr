@@ -126,7 +126,7 @@ all_tests_with_id <- funion(prev_all_tests_with_id, all_tests_with_id)[order(dat
 
 added_records <- pmax(nrow(all_tests_with_id) - nrow(prev_all_tests_with_id), 0)
 
-if(added_records>0){
+if(added_records > 0){
   
   all_dates <- CJ(testType = test_types, date =  seq(first_day, max(all_tests_with_id$date), by = "day"))
   # -- Computing observed positivity rate
@@ -344,7 +344,7 @@ old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/mai
 #   replace_na(list(CamasICU_disp = icu_beds))
 
 httr::set_config(httr::config(ssl_verifypeer = 0L, ssl_verifyhost = 0L))
-url <- "https://covid19datos.salud.gov.pr/estadisticas_v2/download/data/sistemas_salud/completo"
+url <- "https://covid19datos.salud.pr.gov/estadisticas_v2/download/data/sistemas_salud/completo"
 hosp_mort <- try({
   read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
     mutate(date = as_date(FE_REPORTE)) %>%
@@ -367,7 +367,7 @@ if(class(hosp_mort)[1] == "try-error"){
            CAMAS_PICU_DISP, CAMAS_PICU_TOTAL, VENT_ADULTOS_COVID, VENT_ADULTOS_NOCOVID, VENT_ADULTOS_OCC, 
            VENT_ADULTOS_DISP, VENT_ADULTOS_TOTAL, VENT_PED_COVID, VENT_PED_NOCOVID, VENT_PED_OCC, 
            VENT_PED_DISP, VENT_PED_TOTAL, CUARTOS_PRESNEG_OCC, CUARTOS_PRESNEG_DISP, CUARTOS_PRESNEG_TOTAL, 
-           VENT_ORD, VENT_REC, VENT_ENTR, CONVALECIENTES, HospitCOV19, CamasICU, CamasICU_disp)
+           VENT_ORD, VENT_REC, VENT_ENTR, HospitCOV19, CamasICU, CamasICU_disp)
   hosp_mort <- full_join(hosp_mort, old_hosp_mort, by = "date") %>%
     arrange(date) %>%
     mutate(HospitCOV19 = ifelse(is.na(HospitCOV19.x), HospitCOV19.y, HospitCOV19.x),
@@ -418,24 +418,37 @@ age_levels[length(age_levels)] <- paste0(age_starts[length(age_levels)],"+")
 message("Computing Deaths")
 
 #url <- "https://bioportal.salud.pr.gov/api/administration/reports/deaths/summary"
-url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/deaths/summary"
-
-bioportal_deaths <- try({
-	jsonlite::fromJSON(url) %>%
-  mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
-  mutate(date = if_else(date < first_day | date > today(), 
-                        as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
-                        date)) %>%
-  mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
-         age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
-  mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
-  mutate(ageRange = factor(ageRange, levels = age_levels)) 
-
-## replace the death data with latest from dashboard
+#url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/deaths/summary"
+url <- "https://biostatistics.salud.pr.gov/deaths/covid-19/minimal"
+deaths <- try({
+  get_bioportal(url) %>% 
+    mutate(date = ymd(deathDate)) %>%
+     mutate(date = if_else(date < first_day | date > today(), 
+                           ymd(deathReportDate),
+                           date)) %>%
+     mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
+            age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
+     mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
+     mutate(ageRange = factor(ageRange, levels = age_levels)) %>%
+     rename(region = physicalRegion, reportDate = deathReportDate)
+       
+  
+  ##old code for https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/deaths/summary
+  # jsonlite::fromJSON(url) %>%
+  #   mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
+  #   mutate(date = if_else(date < first_day | date > today(), 
+  #                         as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico")),
+  #                         date)) %>%
+  #   mutate(age_start = as.numeric(str_extract(ageRange, "^\\d+")), 
+  #          age_end = as.numeric(str_extract(ageRange, "\\d+$"))) %>%
+  #   mutate(ageRange = age_levels[as.numeric(cut(age_start, c(age_starts, Inf), right = FALSE))]) %>%
+  #   mutate(ageRange = factor(ageRange, levels = age_levels)) 
+  #   get_bioportal(url) %>%
+  # mutate(date = as_date(ymd_hms(deathDate, tz = "America/Puerto_Rico"))) %>%
 })
 
-url <- "https://covid19datos.salud.gov.pr/estadisticas_v2/download/data/defunciones/completo"
-deaths <- try({
+url <- "https://covid19datos.salud.pr.gov/estadisticas_v2/download/data/defunciones/completo"
+dashboard_deaths <- try({
   read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
     rename(ageRange = TX_GRUPO_EDAD, date = FE_MUERTE) %>%
     mutate(date = as_date(ymd_hms(date, tz = "America/Puerto_Rico"))) %>%
@@ -446,11 +459,11 @@ deaths <- try({
 })
 
 if(class(deaths)[1] == "try-error"){
-  if(class(bioportal_deaths)[1] == "try-error"){
+  if(class(dashboard_deaths)[1] == "try-error"){
 	load(file.path(rda_path, "deaths.rda"))
   } else{
 	## if no dashboard data replace the death data with BioPortal data 
-  	deaths <- bioportal_deaths
+  	deaths <- dashboard_deaths
   }
 }
 
@@ -467,10 +480,10 @@ hosp_mort <- deaths %>%
 
 ## Rezagos muerte
 
-if(class(bioportal_deaths)[1] == "try-error"){
-  rezago_mort <- bioportal_deaths %>% 
+if(class(deaths)[1] == "try-error"){
+  rezago_mort <- deaths %>% 
   	filter(!is.na(date)) %>%
-  	mutate(bulletin_date = as_date(ymd_hms(reportDate, tz = "America/Puerto_Rico"))) %>%
+  	mutate(bulletin_date = ymd(reportDate)) %>%
   	arrange(date, bulletin_date) %>%
   	mutate(diff = (as.numeric(bulletin_date) - as.numeric(date))) %>%
   	select(date, diff)
