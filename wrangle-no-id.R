@@ -36,7 +36,7 @@ alpha <- 0.05
 
 ## filter by date example: ?createdAtStartDate=2021-09-09T04:00:00Z&createdAtEndDate=2021-09-10T04:00:00Z
 #test_url <- "https://bioportal.salud.pr.gov/api/administration/reports/minimal-info-unique-tests"
-test_url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/minimal-info-unique-tests"
+test_url <- "https://api-bioportal-prod-eastus2-01.azurewebsites.net/administration/reports/minimal-info-unique-tests"
 
 the_days <- unique(c(first_day, make_date(the_years[-1], 1, 1), last_day))
 the_days <- the_days |> with_tz(tzone = "GMT") |> format("%Y-%m-%dT%H:%M:%SZ")

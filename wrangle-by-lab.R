@@ -35,7 +35,7 @@ alpha <- 0.05
 # Computing positivity rate by lab ----------------------------------------
 
 #url <- "https://bioportal.salud.pr.gov/api/administration/reports/tests-by-collected-date-and-entity"
-#url <- "https://bioportal-apim.salud.pr.gov/bioportal/administration/reports/tests-by-collected-date-and-entity"
+#url <- "https://api-bioportal-prod-eastus2-01.azurewebsites.net/administration/reports/tests-by-collected-date-and-entity"
 url <- "https://biostatistics.salud.pr.gov/orders/tests/covid-19/grouped-by-sample-collected-date-and-entity"
 
 message("Reading lab data.")
