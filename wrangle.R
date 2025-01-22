@@ -467,6 +467,9 @@ if(class(deaths)[1] == "try-error"){
   }
 }
 
+## make sure all dates appear, even if hosp are not being reported
+all_dates <- data.table(date = seq(first_day, max(last_complete_day, max(hosp_mort$date)), by = "day"))
+hosp_mort <- left_join(all_dates, hosp_mort, by = "date")
 hosp_mort <- deaths %>%
   group_by(date) %>%
   summarize(deaths = n(), .groups = "drop") %>%
@@ -476,11 +479,11 @@ hosp_mort <- deaths %>%
   mutate(IncMueSalud = deaths,
          mort_week_avg =  ma7(deaths)) %>%
   select(-deaths)
-
+rm(all_dates)
 
 ## Rezagos muerte
 
-if(class(deaths)[1] == "try-error"){
+if(class(deaths)[1] != "try-error"){
   rezago_mort <- deaths %>% 
   	filter(!is.na(date)) %>%
   	mutate(bulletin_date = ymd(reportDate)) %>%
