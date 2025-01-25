@@ -13,9 +13,19 @@ if(grepl("fermat|leo", Sys.info()["nodename"])){
 
 # moving average ----------------------------------------------------------
 
-ma7 <- function(y, k = 7) as.numeric(stats::filter(y, rep(1/k, k), side = 1))
+ma7 <- function(y, k = 7) as.numeric(stats::filter(y, rep(1/k, k), sides = 1))
 
-sum7 <- function(y, k = 7) as.numeric(stats::filter(y, rep(1, k), side = 1))
+sum7 <- function(y, k = 7) as.numeric(stats::filter(y, rep(1, k), sides = 1))
+
+# function to read from bioportal------------------------------------------
+
+get_bioportal <- function(url){
+  setDT(jsonlite::fromJSON(
+    rawToChar(
+      httr::GET(url, httr::content_type('application/json'),
+                httr::add_headers('Accept-Enconding'="br"))$content
+    )))
+}
 
 # -- Fixed values
 pr_pop <- 3285874 ## population of puerto rico
@@ -74,13 +84,6 @@ cases_url_antigens <- paste0(cases_url,
                              format(now(tzone="GMT")+days(1), "%Y-%m-%dT%H:%M:%SZ"))
 
 
-get_bioportal <- function(url){
-  setDT(jsonlite::fromJSON(
-    rawToChar(
-      httr::GET(url, httr::content_type('application/json'),
-                httr::add_headers('Accept-Enconding'="br"))$content
-  )))
-}
 
 # Reading and wrangling cases data from database ---------------------------
 message("Reading case data.")
@@ -338,36 +341,57 @@ old_hosp_mort <- read_csv("https://raw.githubusercontent.com/rafalab/covidpr/mai
   mutate(date = mdy(Fecha)) %>%
   filter(date >= first_day) %>%
   arrange(date) %>%
-  select(date, HospitCOV19, CamasICU_disp, CamasICU)
+  select(date, HospitCOV19, CamasICU_disp, CamasICU) 
 # we started keeping track of available beds on 2020-09-20
 # hosp_mort <- hosp_mort %>%
 #   replace_na(list(CamasICU_disp = icu_beds))
 
 httr::set_config(httr::config(ssl_verifypeer = 0L, ssl_verifyhost = 0L))
-url <- "https://covid19datos.salud.pr.gov/estadisticas_v2/download/data/sistemas_salud/completo"
+url <- "https://biostatistics.salud.pr.gov/catalogs/01949661-0d28-7b96-8e27-6237269e55a0/last-file-url?fileFormatId=CSV"
 hosp_mort <- try({
-  read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
-    mutate(date = as_date(FE_REPORTE)) %>%
-    filter(date >= first_day) %>%
-    full_join(old_hosp_mort, by = "date") %>%
-    arrange(date) %>%
-    ## add columns to match old table
+  fread(httr::content(httr::GET(httr::GET(url)$url))$url) |>
+  rename(FE_REPORTE = Date,
+           CAMAS_ADULTOS_TOTAL = TotalAdultHospitalInpatientBeds,
+           CAMAS_ADULTOS_COVID = TotalAdultHospitalInpatientBedsOccupiedCovid19,
+           CAMAS_ICU_TOTAL = TotalStaffedAdultIcuBeds,
+           CAMAS_ICU_OCC = TotalStaffedAdultIcuBedsOccupied,
+           CAMAS_ICU_COVID = TotalStaffedAdultIcuBedsOccupiedCovid19,
+           CAMAS_PED_TOTAL = TotalPediatricInpatientBeds,
+           CAMAS_PED_OCC =TotalPediatricInpatientBedsOccupied,
+           CAMAS_PED_COVID = TotalPediatricInpatientBedsOccupiedCovid19,
+           CAMAS_PICU_TOTAL = TotalStaffedPediatricIcuBeds,
+           CAMAS_PICU_OCC = TotalStaffedPediatricIcuBedsOccupied,
+           CAMAS_PICU_COVID = TotalStaffedPediatricIcuBedsOccupiedCovid19) |>
+    mutate(CAMAS_ICU_DISP = CAMAS_ICU_TOTAL - CAMAS_ICU_OCC) |> 
+    mutate(date = mdy(FE_REPORTE)) |> 
+    full_join(old_hosp_mort, by = "date") |>
+    arrange(date) |>
     mutate(HospitCOV19 = ifelse(is.na(CAMAS_ADULTOS_COVID), HospitCOV19, CAMAS_ADULTOS_COVID),
            CamasICU = ifelse(is.na(CAMAS_ICU_COVID), CamasICU, CAMAS_ICU_COVID),
-           CamasICU_disp = ifelse(is.na(CAMAS_ICU_DISP), CamasICU_disp, CAMAS_ICU_DISP))
-})
+           CamasICU_disp = ifelse(is.na(CAMAS_ICU_DISP), CamasICU_disp, CAMAS_ICU_DISP)) |>
+    select(date, HospitCOV19, CamasICU, CamasICU_disp, CAMAS_PED_COVID, CAMAS_PICU_COVID) |>
+    as.data.frame()
+}) 
+
+## Old API for hospitalizations
+# url <- "https://covid19datos.salud.pr.gov/estadisticas_v2/download/data/sistemas_salud/completo"
+# hosp_mort <- try({
+#   read.csv(text = rawToChar(httr::content(httr::GET(url)))) %>% 
+#     mutate(date = as_date(FE_REPORTE)) %>%
+#     filter(date >= first_day) %>%
+#     full_join(old_hosp_mort, by = "date") %>%
+#     arrange(date) %>%
+#     ## add columns to match old table
+#     mutate(HospitCOV19 = ifelse(is.na(CAMAS_ADULTOS_COVID), HospitCOV19, CAMAS_ADULTOS_COVID),
+#            CamasICU = ifelse(is.na(CAMAS_ICU_COVID), CamasICU, CAMAS_ICU_COVID),
+#            CamasICU_disp = ifelse(is.na(CAMAS_ICU_DISP), CamasICU_disp, CAMAS_ICU_DISP))
+# })
 
 if(class(hosp_mort)[1] == "try-error"){
   load(file.path(rda_path, "hosp_mort.rda"))
   hosp_mort <- hosp_mort %>% 
-    select(date, FE_REPORTE, CAMAS_ADULTOS_COVID, CAMAS_ADULTOS_NOCOVID, CAMAS_ADULTOS_OCC, 
-           CAMAS_ADULTOS_DISP, CAMAS_ADULTOS_TOTAL, CAMAS_ICU_COVID, CAMAS_ICU_NOCOVID, CAMAS_ICU_OCC, 
-           CAMAS_ICU_DISP, CAMAS_ICU_TOTAL, CAMAS_PED_COVID, CAMAS_PED_NOCOVID, CAMAS_PED_OCC, 
-           CAMAS_PED_DISP, CAMAS_PED_TOTAL, CAMAS_PICU_COVID, CAMAS_PICU_NOCOVID, CAMAS_PICU_OCC, 
-           CAMAS_PICU_DISP, CAMAS_PICU_TOTAL, VENT_ADULTOS_COVID, VENT_ADULTOS_NOCOVID, VENT_ADULTOS_OCC, 
-           VENT_ADULTOS_DISP, VENT_ADULTOS_TOTAL, VENT_PED_COVID, VENT_PED_NOCOVID, VENT_PED_OCC, 
-           VENT_PED_DISP, VENT_PED_TOTAL, CUARTOS_PRESNEG_OCC, CUARTOS_PRESNEG_DISP, CUARTOS_PRESNEG_TOTAL, 
-           VENT_ORD, VENT_REC, VENT_ENTR, HospitCOV19, CamasICU, CamasICU_disp)
+    select(date, HospitCOV19, CamasICU, CamasICU_disp, CAMAS_PED_COVID, CAMAS_PICU_COVID) 
+    
   hosp_mort <- full_join(hosp_mort, old_hosp_mort, by = "date") %>%
     arrange(date) %>%
     mutate(HospitCOV19 = ifelse(is.na(HospitCOV19.x), HospitCOV19.y, HospitCOV19.x),
