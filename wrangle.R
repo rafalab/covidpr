@@ -362,7 +362,7 @@ hosp_mort <- try({
            CAMAS_PICU_TOTAL = TotalStaffedPediatricIcuBeds,
            CAMAS_PICU_OCC = TotalStaffedPediatricIcuBedsOccupied,
            CAMAS_PICU_COVID = TotalStaffedPediatricIcuBedsOccupiedCovid19) |>
-    mutate(CAMAS_ICU_DISP = CAMAS_ICU_TOTAL - CAMAS_ICU_OCC) |> 
+    mutate(CAMAS_ICU_DISP = 614 - CAMAS_ICU_OCC) |>  ##614 is temporary fix
     mutate(date = mdy(FE_REPORTE)) |> 
     full_join(old_hosp_mort, by = "date") |>
     arrange(date) |>
