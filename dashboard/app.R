@@ -30,11 +30,15 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                                    language = "es",
                                    width = "100%"),
                     
-                    actionButton("weeks", "Última semana", 
+                    # actionButton("weeks", "Última semana", 
+                    #              style = button_style),
+                    # br(),br(),
+                    # 
+                    actionButton("months", "Últimos 90 días", 
                                  style = button_style),
                     br(),br(),
                     
-                    actionButton("months", "Últimos 90 días", 
+                    actionButton("year", "Último año", 
                                  style = button_style),
                     br(),br(),
                     
@@ -271,12 +275,12 @@ server <- function(input, output, session) {
   
   
   # -- This sets range to last week
-  observeEvent(input$weeks, {
-    updateDateRangeInput(session, "range",
-                         start = max(tests$date) - days(6),
-                         end   = max(tests$date))
-  })
-  
+  # observeEvent(input$weeks, {
+  #   updateDateRangeInput(session, "range",
+  #                        start = max(tests$date) - days(6),
+  #                        end   = max(tests$date))
+  # })
+  # 
   
   # -- This sets range to last 90 days (default)
   observeEvent(input$months, {
@@ -285,6 +289,12 @@ server <- function(input, output, session) {
                          end   = max(tests$date))
   })
   
+  # -- This sets range to last year
+  observeEvent(input$year, {
+    updateDateRangeInput(session, "range",
+                         start = max(tests$date) - years(1),
+                         end   = max(tests$date))
+  })
   # -- This sets range to last two weeks
   observeEvent(input$alldates, {
     updateDateRangeInput(session, "range",
@@ -317,7 +327,7 @@ server <- function(input, output, session) {
   })
   
   output$disclaimer <- renderText({
-    paste0("<p>Las tasas de positividad y casos nuevos por día están basados en datos que aún se están actualizando, por lo cual pueden cambiar durante el día. ",
+    paste0("<p>La tasa de positividad y casos nuevos por día están basados en datos que aún se están actualizando, por lo cual pueden cambiar durante el día. ",
            "La siguiente tabla muestra los datos para las semana de ",
            format(last_day-days(6), "%B %d a "), format(last_day, "%B %d, "),
            "fechas para las cuales los datos ya están casi completos. ",
@@ -343,8 +353,8 @@ server <- function(input, output, session) {
   #          "Las flechas de colores no dicen si hubo cambio estadísticamente singificative cuando comparamos a la semana anterior. ",
   #          "Noten que los datos de las pruebas toman ", lag_to_complete, " días en estar aproximadamente completos. Ver pestaña <em>FAQ</em> para explicaciones mas detalladas.")
   # 
-    paste0("<h5> <b>Tasas de positividad</b> están basados en pruebas moleculares. ",
-    "<b>Casos</b> y <b>pruebas</b> están basados en pruebas diagnósticas (moleculares y de antígeno). ",
+    paste0("<h5> <b>Tasa de positividad</b>, ",
+    "<b>casos</b> y <b>pruebas</b> están basados en pruebas diagnósticas (moleculares y de antígeno). ",
     "Para estos indicadores y las muertes usamos <b>promedio de siete días</b> para contrarrestar el efecto que tiene el día de la semana. ",
     "Las flechas de colores nos dicen si hubo cambio estadísticamente singificativo cuando comparamos a la semana anterior. ",
     "Noten que los datos de las pruebas toman ", lag_to_complete, " días en estar aproximadamente completos. Ver pestaña <em>FAQ</em> para explicaciones mas detalladas.")
@@ -356,8 +366,8 @@ server <- function(input, output, session) {
   output$positividad <-  renderText({
     paste0(
       "<table cellpadding=\"100\" cellspacing=\"100\">",
-      "<tr><td>Tasa de positividad (pruebas):</td><td align=\"right\">&emsp;", res()$positividad, "</td></tr>", 
-      "<tr><td>Tasa de positividad (casos):</td><td align=\"right\">&emsp;", res()$casos_positividad, "</td></tr>", #, "&emsp;", 
+      #"<tr><td>Tasa de positividad (pruebas):</td><td align=\"right\">&emsp;", res()$positividad, "</td></tr>", 
+      "<tr><td>Tasa de positividad:</td><td align=\"right\">&emsp;", res()$casos_positividad, "</td></tr>", #, "&emsp;", 
       "<tr><td>Casos nuevos por día:</td><td align=\"right\">&emsp;", res()$casos, "</td></tr>",
       "<tr><td>Hospitalizaciones:</td><td align=\"right\">&emsp;", res()$hosp, "</td></tr>",
       "<tr><td>Muertes por día:</td><td align=\"right\">&emsp;", res()$mort, "</td></tr></table>")
@@ -369,7 +379,7 @@ server <- function(input, output, session) {
   
   output$resumen_table <- DT::renderDataTable({
     ## Hard-wiring the test type.
-    compute_summary(tests, hosp_mort)$tab[1:6,] %>%
+    compute_summary(tests, hosp_mort)$tab[c(2,3,5,6,4),] %>%
       DT::datatable(class = 'white-space: nowrap',
                     rownames = FALSE,
                     escape = FALSE, 
@@ -383,14 +393,14 @@ server <- function(input, output, session) {
   output$resumen_plots <- renderPlot({
     p1 <- plot_positivity(tests, 
                           start_date = input$range[1],  end_date = input$range[2], 
-                          type = "Molecular", #input$testType, 
+                          type = input$testType, 
                           yscale = as.logical(input$yscale), version = "pruebas")
     p2 <- plot_deaths(hosp_mort, 
                     start_date = input$range[1], end_date = input$range[2],
                     cumm = as.logical(input$acumulativo), yscale = as.logical(input$yscale))
     p3 <-  plot_cases(cases, 
                       start_date = input$range[1], end_date = input$range[2], 
-                      type =  "Molecular+Antigens", #input$testType, 
+                      type =  input$testType, 
                       cumm = as.logical(input$acumulativo),
                       yscale = as.logical(input$yscale))
     p4 <-  plot_hosp(hosp_mort, 
@@ -678,8 +688,7 @@ server <- function(input, output, session) {
     load(file.path(rda_path,"rezago_mort.rda"))
     plot_rezago(rezago, rezago_mort, 
                 start_date = input$range[1], 
-                 end_date = input$range[2], 
-                 type = input$testType)
+                 end_date = input$range[2])
   })
   
   output$labs <- DT::renderDataTable({

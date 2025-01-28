@@ -27,6 +27,21 @@ get_bioportal <- function(url){
     )))
 }
 
+## Compute positivity rate saved in tests only for last 90 days.
+## Use previous data for day before then.
+if(file.exists("rdas/data.rda")){
+  prev_data <- load("rdas/data.rda")
+  prev_tests <- tests
+  recompute_tests_first_day <- max(prev_tests$date) - days(90)
+  prev_tests <- as.data.table(tests[tests$date < recompute_tests_first_day,])
+  rm(list = prev_data)
+  rm("prev_data")
+} else{
+  prev_tests <- NULL
+  recompute_tests_first_day <- make_date(2020, 3, 12)
+}
+
+
 # -- Fixed values
 pr_pop <- 3285874 ## population of puerto rico
 
@@ -48,18 +63,19 @@ test_types <- c("Molecular", "Antigens", "Molecular+Antigens")
 
 original_test_types <- c("Molecular", "Antigens")
 
+
 ## Load latest data
 message("Loading previous dataset.")
 
 prev_all_tests_with_id <- readRDS(file = file.path(rda_path, "all_tests_with_id.rds"))
 
 #molecular_last_download <- max(prev_all_tests_with_id[testType == "Molecular"]$orderCreatedAt) |>
-molecular_last_download <- as_datetime(today(tz= "America/Puerto_Rico") - days(10)) |>
+molecular_last_download <- as_datetime(today(tzone = "America/Puerto_Rico") - days(10)) |>
   with_tz(tzone = "GMT") |>
   format("%Y-%m-%dT%H:%M:%SZ")
 
 #antigen_last_download <- max(prev_all_tests_with_id[testType == "Antigens"]$orderCreatedAt) |>
-antigen_last_download <- as_datetime(today(tz= "America/Puerto_Rico") - days(10)) |>
+antigen_last_download <- as_datetime(today(tzone = "America/Puerto_Rico") - days(10)) |>
   with_tz(tzone = "GMT") |>
   format("%Y-%m-%dT%H:%M:%SZ")
 
@@ -129,17 +145,20 @@ all_tests_with_id <- funion(prev_all_tests_with_id, all_tests_with_id)[order(dat
 
 added_records <- pmax(nrow(all_tests_with_id) - nrow(prev_all_tests_with_id), 0)
 
-if(added_records > 0){
+if (added_records > 0) {
   
-  all_dates <- CJ(testType = test_types, date =  seq(first_day, max(all_tests_with_id$date), by = "day"))
+  ## Compute summary statistics for the last 90 days, starting on recompute_tests_first_day
+  ## We will then combine with prev_test that has the rest of the data
+  all_dates <- CJ(testType = test_types, 
+                  date =  seq(pmax(first_day, recompute_tests_first_day), max(all_tests_with_id$date), by = "day"))
   # -- Computing observed positivity rate
   ## adding a new test type that combines molecular and antigens
   mol_anti <- all_tests_with_id[date >= first_day & testType %in% c("Molecular", "Antigens") & result %in% c("positive", "negative")]
   mol_anti[, testType := "Molecular+Antigens"]
   
-  
   ## compute daily totals
-  tests <- rbind(all_tests_with_id, mol_anti)[date >= first_day & 
+  tests <- rbind(all_tests_with_id[date >= pmax(first_day, recompute_tests_first_day)], 
+                 mol_anti[date >= pmax(first_day, recompute_tests_first_day)])[ 
              testType %in% test_types & 
              result %in% c("positive", "negative")]
   tests <- tests[, .(people_positives = uniqueN(patientId[result == "positive"]),
@@ -154,8 +173,8 @@ if(added_records > 0){
   ## and use this to compute percent of people with positive tests
   
   positivity <- function(dat){
-    dat<-copy(dat)
-    day_seq <- seq(first_day + weeks(1), max(dat$date), by = "day")
+    dat <- copy(dat)
+    day_seq <- seq(min(dat$date) + weeks(1), max(dat$date), by = "day")
     res <- lapply(day_seq, function(the_day){
       tmp <- dat[date > the_day - weeks(1) & date <= the_day]
       tmp[, obs := entry_date <= the_day]
@@ -183,8 +202,10 @@ if(added_records > 0){
   message("Computing positivity.")
   
   ## run the function on each test type
-  fits <- rbind(all_tests_with_id, mol_anti) 
-  fits <- fits[date >= first_day & testType %in% test_types & result %in% c("positive", "negative")]
+  fits <- rbind(all_tests_with_id[date >= pmax(first_day, recompute_tests_first_day - weeks(1))], 
+                mol_anti[date >= pmax(first_day, recompute_tests_first_day - weeks(1))]) 
+  ##fits <- fits[date >= first_day & testType %in% test_types & result %in% c("positive", "negative")]
+  fits <- fits[testType %in% test_types & result %in% c("positive", "negative")]
   fits[,`:=`(pos = result == "positive", entry_date = as_date(resultCreatedAt))]
   fits <- fits[, positivity(.SD), by = "testType"]
   
@@ -197,7 +218,11 @@ if(added_records > 0){
   tests[, `:=`(tests_positives_week = sum7(tests_positives),
                tests_total_week = sum7(tests_total)), by = "testType"]
   
+  cns <- names(tests)
+  tests <- rbind(prev_tests[, ..cns], tests)
+  rm(prev_tests, cns)
   # compute unique cases ------------------------------------------------------------
+  message("Computing cases.")
   cases <- rbind(all_tests_with_id, mol_anti)[
     date >= first_day & result == "positive" &
              testType %in% test_types][order(testType, patientId, date)]
@@ -211,6 +236,8 @@ if(added_records > 0){
   cases[, patientId := NULL]
   cases[, result:=NULL]
   cases <- cases[order(testType, date)]
+  
+  message("Computing reinfections.")
   
   ## Do reinfections by age here since instead of 
   age_starts <- c(0, 10, 15, 20, 30, 40, 65, 75)

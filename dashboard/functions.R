@@ -67,12 +67,12 @@ plot_positivity <- function(tests,
     ylab("Tasa de positividad") +
     xlab("Fecha") +
     theme_bw() +
-    geom_line(aes(date, fit, linetype = date > last_day), color = "blue", size = 0.80, show.legend = FALSE) +
+    geom_line(aes(date, fit, linetype = date > last_day), color = "blue", linewidth = 0.80, show.legend = FALSE) +
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.35, show.legend = FALSE) +
     annotate("label", x = end_date + add, y = the_label, label = make_pct(the_label)) +
     labs(title = the_title, subtitle = the_subtitle,
          caption = "Los puntos son el por ciento diarios, la curva el porciento semanal.") +
-    scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))
+    scale_x_date(date_labels = "%b %Y")
     
   the_ylim <- range(dat$rate, na.rm=TRUE)   
   #the_ylim <- dat %>%
@@ -140,7 +140,7 @@ plot_icu <- function(hosp_mort,
     ylab("Por ciento") +
     labs(title = "Camas ICU disponibles usadas por pacientes COVID-19",
          caption = "Algunas pacientes en el ICU están ahí por otras causas.\nLa gráfica muestra el porcentaje de las camas restantes ocupadas por pacientes COVID-19.") +
-    scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+    scale_x_date(date_labels = "%b %Y") +
     scale_y_continuous(limits = lim, labels = scales::percent) +
     theme_bw() 
   
@@ -165,7 +165,7 @@ plot_deaths <- function(hosp_mort,
       ylab("Muertes acumuladas") +
       xlab("Fecha") +
       ggtitle("Muertes acumuladas") +
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       theme_bw()
   } else{
     
@@ -177,17 +177,17 @@ plot_deaths <- function(hosp_mort,
       ylab("Muertes") +
       xlab("Fecha") +
       ggtitle("Muertes") +
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       #scale_y_continuous(breaks = seq(0, max(hosp_mort$IncMueSalud, na.rm=TRUE), 1)) +
       theme_bw()
     if(yscale){
       ret <- ret +  
         geom_bar(aes(y = IncMueSalud), stat = "identity", width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", size = 1.25, show.legend = FALSE)
+        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", linewidth = 1.25, show.legend = FALSE)
     } else{
       ret <- ret +  
         geom_point(aes(y = IncMueSalud), width = 0.75, alpha = 0.65) +
-        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", size = 1.25, show.legend = FALSE)
+        geom_line(aes(y = mort_week_avg, linetype = date > last_day), color="black", linewidth = 1.25, show.legend = FALSE)
     }
   }
   return(ret)
@@ -207,22 +207,22 @@ plot_hosp <- function(hosp_mort,
     ret <- tmp %>% 
       ggplot(aes(x = date)) +
       geom_bar(mapping = aes(y = HospitCOV19), stat = "identity", width = 0.75, fill = "#8CC8F4") +
-      geom_line(aes(y = hosp_week_avg), color="#8CC8F4", size = 1.25) +
+      geom_line(aes(y = hosp_week_avg), color="#8CC8F4", linewidth = 1.25) +
       geom_bar(mapping = aes(y = CamasICU), stat = "identity", width = 0.75, fill = "darkblue") +
-      geom_line(aes(y = icu_week_avg), color="darkblue", size = 1.25) +
+      geom_line(aes(y = icu_week_avg), color="darkblue", linewidth = 1.25) +
       ggtitle("Hospitalizaciones y ICU")
   } else{
     ret <- tmp %>% 
       ggplot(aes(x = date)) +
       geom_point(mapping = aes(y = HospitCOV19), width = 0.75, color = "#8CC8F4") +
-      geom_line(aes(y = hosp_week_avg), color="#8CC8F4", size = 1.25) +
+      geom_line(aes(y = hosp_week_avg), color="#8CC8F4", linewidth = 1.25) +
       ggtitle("Hospitalizaciones") 
   }
   
   ret <- ret +  
     xlab("Fecha") +
     ylab("Pacientes") +
-    scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+    scale_x_date(date_labels = "%b %Y") +
     theme_bw() 
   
   return(ret)
@@ -242,22 +242,22 @@ plot_hosp_ped <- function(hosp_mort,
     ret <- tmp %>% 
       ggplot(aes(x = date)) +
       geom_bar(mapping = aes(y = CAMAS_PED_COVID), stat = "identity", width = 0.75, fill = "#8CC8F4") +
-      geom_line(aes(y = ped_hosp_week_avg), color="#8CC8F4", size = 1.25) +
+      geom_line(aes(y = ped_hosp_week_avg), color="#8CC8F4", linewidth = 1.25) +
       geom_bar(mapping = aes(y = CAMAS_PICU_COVID), stat = "identity", width = 0.75, fill = "darkblue") +
-      geom_line(aes(y = picu_week_avg), color="darkblue", size = 1.25) +
+      geom_line(aes(y = picu_week_avg), color="darkblue", linewidth = 1.25) +
       ggtitle("Hospitalizaciones y ICU Pediátricas")
   } else{
     ret <- tmp %>% 
       ggplot(aes(x = date)) +
       geom_point(mapping = aes(y = CAMAS_PED_COVID), width = 0.75, color = "#8CC8F4") +
-      geom_line(aes(y = ped_hosp_week_avg), color="#8CC8F4", size = 1.25) +
+      geom_line(aes(y = ped_hosp_week_avg), color="#8CC8F4", linewidth = 1.25) +
       ggtitle("Hospitalizaciones y ICU Pediátricas") 
   }
   
   ret <- ret +  
     xlab("Fecha") +
     ylab("Pacientes") +
-    scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+    scale_x_date(date_labels = "%b %Y") + 
     theme_bw() 
   
   return(ret)
@@ -289,7 +289,7 @@ plot_cases <- function(cases,
       ylab(title) +
       xlab("Fecha") +
       scale_y_continuous(labels = scales::comma, trans = the_transf) +
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       theme_bw()
   } else{
     
@@ -306,17 +306,17 @@ plot_cases <- function(cases,
                                       type == "Serological" ~ "serológicas",
                                       type == "Antigens" ~ "de antígenos",
                                       type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) +
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") +
       theme_bw()
     
     if(yscale){
       ret <- ret + 
         geom_bar(aes(y = cases), stat = "identity", fill = "#FBBCB2", width= 0.75) +
-        geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
+        geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", linewidth = 1.25) 
     } else{
       ret <- ret + 
         #geom_point(color = "#FBBCB2") +
-        geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) 
+        geom_line(aes(y = cases_week_avg, linetype = date > last_day), color = "#CC523A", linewidth = 1.25) 
     }
     ret <- ret + theme(legend.position = "none") + scale_y_continuous(labels = scales::comma, trans = the_transf, n.breaks  = 10)
   }
@@ -350,7 +350,7 @@ plot_reinfections <- function(cases,
       ylab(title) +
       xlab("Fecha") +
       scale_y_continuous(labels = scales::percent) +
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       theme_bw()
   } else{
     
@@ -368,10 +368,10 @@ plot_reinfections <- function(cases,
                                       type == "Serological" ~ "serológicas",
                                       type == "Antigens" ~ "de antígenos",
                                       type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) +
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       theme_bw() + 
       geom_point(aes(y = percent_reinfection), color = "#FBBCB2", alpha = 0.5) +
-      geom_line(aes(y = percent_reinfection_week_avg, linetype = date > last_day), color = "#CC523A", size = 1.25) + 
+      geom_line(aes(y = percent_reinfection_week_avg, linetype = date > last_day), color = "#CC523A", linewidth = 1.25) + 
       theme(legend.position = "none") + scale_y_continuous(labels = scales::percent,  n.breaks  = 10)
     if(yscale){
       ymax <- pmin(1, max(filter(cases,testType == type)$percent_reinfection_week_avg, na.rm=TRUE)*1.05)
@@ -404,7 +404,7 @@ plot_test <- function(tests,
                                    type == "Serological" ~ "serológicas",
                                    type == "Antigens" ~ "de antígenos",
                                    type == "Molecular+Antigens" ~ "moleculares y de antígenos"))) + 
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       scale_y_continuous(labels = scales::comma) +
       theme_bw() 
   } else{
@@ -417,7 +417,7 @@ plot_test <- function(tests,
       ggplot(aes(date, people_total)) +
       geom_bar(stat = "identity", width = 0.75, fill = "#D1D1E8") +
       geom_line(aes(y = people_total_week / 7, linetype = date > last_day), 
-                color = "#31347A", size = 1.25, show.legend = FALSE) +
+                color = "#31347A", linewidth = 1.25, show.legend = FALSE) +
       ylab("Pruebas") +
       xlab("Fecha") +
       labs(title = paste("Pruebas", 
@@ -426,7 +426,7 @@ plot_test <- function(tests,
                                    type == "Antigens" ~ "de antígenos",
                                    type == "Molecular+Antigens" ~ "moleculares y de antígenos"), 
            "por día")) + 
-      scale_x_date(date_labels = "%b", breaks = breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       scale_y_continuous(labels = scales::comma) +
       theme_bw()
   }    
@@ -450,7 +450,7 @@ plot_positivity_by_lab <- function(labs,
       geom_point(aes(y = positives/tests), alpha = 0.25) +
       geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.35) +
       geom_line(aes(linetype = date > last_day), col = "blue", show.legend = FALSE) +
-      scale_x_date(date_labels = "%b", breaks = scales::breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") + 
       xlab("Fecha") +
       ylab("Tasa") +
       theme_bw() 
@@ -484,7 +484,7 @@ plot_tests_by_lab <- function(labs,
       mutate(Laboratorio = factor(Laboratorio, levels = levels)) %>%
       ggplot(aes(date, prop, fill = Laboratorio)) + 
       geom_area() + 
-      scale_x_date(date_labels = "%b", breaks = scales::breaks_width("1 month"))  +
+      scale_x_date(date_labels = "%b %Y") +
       xlab("Fecha") +
       ylab("Proporción de pruebas") +
       theme_bw() +
@@ -530,7 +530,7 @@ plot_map <- function(tests_by_strata,
     rename(municipio = patientCity) %>%
     left_join(map, by = "municipio") %>%
     ggplot() + 
-    geom_polygon(aes(x = X, y = Y, group = paste(municipio, part), fill = rate), color = "black", size = 0.15)  + 
+    geom_polygon(aes(x = X, y = Y, group = paste(municipio, part), fill = rate), color = "black", linewidth = 0.15)  + 
     geom_text(mapping = aes(x = X, y = Y, label = municipio), data = map_centers,
               size  = 2.2,
               color = "black",
@@ -853,7 +853,6 @@ make_municipio_table <- function(tests_by_strata,
   plot_rezago <- function(rezago, rezago_mort,
                         start_date = first_day, 
                         end_date = last_complete_day, 
-                        type = "Molecular", 
                         n_points =  600,
                         max_days = 30){
   
@@ -863,38 +862,34 @@ make_municipio_table <- function(tests_by_strata,
   
   dias <- seq(0, max_days, length.out = n_points)
   
-  dat <- data.frame(Resultado = "Muertes", dias = dias, props = ecdf(diff_mort)(dias))
-  the_title <- "Rezago entre día de muerte y día en que se reporta en informe oficial"
+  dat_deaths <- data.frame(Resultado = "Muertes", testType = "Molecular", dias = dias, props = ecdf(diff_mort)(dias))
+  the_title <- "El rezago es el tiempo que transcurre entre el día en que ocurre el evento\ny el día en que se reporta al Bioportal."
   
-  if(type != "Molecular+Antigens"){
-    dat_tests <- rezago %>%
-      filter(date >= start_date &  date <= end_date & testType == type) %>%
-      filter(diff >= 0) %>%
-      select(diff, Resultado) 
-    
-    diff_pos <- filter(dat_tests, Resultado == "Positivos") %>% pull(diff)
-    dat_pos <- data.frame(Resultado = "Positivos", dias = dias, props = ecdf(diff_pos)(dias))
-    
-    diff_neg <- filter(dat_tests, Resultado == "Negativos") %>% pull(diff)
-    dat_neg <- data.frame(Resultado = "Negativos", dias = dias, props = ecdf(diff_neg)(dias))
-    
-    dat <- bind_rows(dat, bind_rows(dat_neg, dat_pos))
-    the_title <- paste(the_title, "\ny entre toma de muestra y día en que se reporta prueba",  
-                       case_when(type == "Molecular" ~ "moleculares", 
-                                 type == "Serological" ~ "serológicas",
-                                 type == "Antigens" ~ "de antígenos"))
-  }
-    
-    
+  get_ecdf <- function(x,y){
+    data.frame(dias = x, props = ecdf(y)(x))
+  }  
+  
+  dat_tests <- rezago %>%
+    filter(date >= start_date &  date <= end_date) %>%
+    group_by(testType) %>%
+    filter(diff >= 0) %>%
+    select(diff, Resultado, testType) |>
+    group_by(Resultado, testType) |>
+    reframe(get_ecdf(dias, diff))
+  
+  dat <- bind_rows(dat_deaths, dat_tests)
+ 
   dat %>%
-    ggplot(aes(x = dias, y = props, color = Resultado)) +
+    mutate(testType = if_else(testType == "Molecular", "Molecular", "Antígeno")) %>%
+    ggplot(aes(x = dias, y = props, color = Resultado, linetype = testType)) +
     geom_step(alpha = 0.75) + 
     xlab("Días de rezago") + 
     ylab("Por ciento reportados") +
-    labs(title = the_title,
+    labs(title = the_title, linetype = "Tipo de prueba",
          subtitle = paste("Fechas:", format(start_date, "%B %d"), "a", format(end_date, "%B %d."))) +
-    scale_y_continuous(labels=scales::percent, limits = c(0,1)) + 
-    scale_color_manual(values=c("#000000", "#00BFC4", "#F8766D")) + 
+    scale_y_continuous(labels = scales::percent, limits = c(0,1)) + 
+    scale_color_manual(values = c("#000000", "#00BFC4", "#F8766D")) + 
+    scale_linetype_manual(values = c("Antígeno" = "dashed", "Molecular" = "solid")) +
     xlim(0, max_days) +
     theme_bw()
 }
@@ -1109,7 +1104,7 @@ plot_travelers <- function(travelers,
     
   p <- p +
     geom_point(alpha = 0.25) +
-    geom_line(aes(y = avg), size = 1.5) +
+    geom_line(aes(y = avg), linewidth = 1.5) +
     scale_x_date(date_labels = "%b %d") +
     ggtitle("Viajeros llegando a Puerto Rico") +
     ylab(ylab) +
@@ -1311,7 +1306,7 @@ summary_by_region <- function(tests_by_region,
     ylab(var_title) +
     labs(color = "Región") +
     labs(title = the_title, subtitle = the_subtitle) +
-    scale_x_date(date_labels = "%b", breaks = breaks_width("1 month")) +
+    scale_x_date(date_labels = "%b %Y") +
     theme_bw()
 
   if(pct) the_labels <- scales::percent else the_labels <- waiver()
@@ -1574,7 +1569,7 @@ summary_by_age <- function(tests_by_age,
        } else{
         p <- p + 
           geom_bar(aes(y = daily_stat), stat = "identity", color = the_color_1, fill = the_color_1, width= 0.2, alpha =0.5, show.legend = FALSE) +
-          geom_line(aes(linetype = date > last_day), color = the_color_2, show.legend = FALSE, size = 1.25) 
+          geom_line(aes(linetype = date > last_day), color = the_color_2, show.legend = FALSE, linewidth = 1.25) 
       }
     } else{
       p <- p + 
@@ -1603,7 +1598,7 @@ summary_by_age <- function(tests_by_age,
 
 ###
 ### this is used to make the table in the front page
-compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = the_alpha){
+compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = the_alpha, type = "Molecular+Antigens"){
   
   load(file.path(rda_path,"vacunas_summary_tab.rda"))
   
@@ -1617,10 +1612,10 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   ## we include the latest day because we have a usable value
   ## we also keep a week earlier 
   ## we take them out later to keep the table dimensions the same
-  pos <- filter(tests, testType == "Molecular" & date %in% the_dates) %>%
+  pos <- filter(tests, testType == type & date %in% the_dates) %>%
     arrange(desc(date))
   
-  latest <- filter(tests, testType == "Molecular" & date %in% the_latest_dates) %>%
+  latest <- filter(tests, testType == type & date %in% the_latest_dates) %>%
     arrange(desc(date))
   
   if(nrow(latest) > 0) pos <- bind_rows(latest, pos) else bind_rows(slice(pos, c(1,2), pos))
@@ -1654,18 +1649,18 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   
   ## cases 
   ## same a pos but for cases. here we use diagnostic tests: molecular + antigens
-  cas <- filter(tests, testType == "Molecular+Antigens" & 
+  cas <- filter(tests, testType == type & 
                   date %in% the_dates)  %>%
     arrange(desc(date))
   
-  cas_day <- filter(tests, testType == "Molecular+Antigens" & date >= max(the_dates))  %>%
+  cas_day <- filter(tests, testType == type & date >= max(the_dates))  %>%
     arrange(desc(cases_week_avg)) %>%
     slice(1) %>% pull(date)
   
   the_latest_cas_dates <- cas_day - weeks(0:1)
   
   latest <- tests %>% 
-    filter(testType == "Molecular+Antigens" &date %in% the_latest_cas_dates) %>%
+    filter(testType == type &date %in% the_latest_cas_dates) %>%
     arrange(desc(date))
   
   if(nrow(latest) > 0) cas <- bind_rows(latest, cas) else hos <- bind_rows(slice(cas, c(1,2)), cas)
@@ -1675,7 +1670,7 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   phi <- tests %>% filter(date >= make_date(2021, 7, 1) & 
                             date <= make_date(2021, 11, 15) & ## avoid election thanksgiving and xmas
                             date <= last_day &
-                            testType == "Molecular+Antigens") %>%
+                            testType == type) %>%
     mutate(wd = factor(wday(date)), x = as.numeric(date), week = factor(round_date(date, "week"))) %>%
     glm(cases ~ wd + splines::ns(x, df=16), data = ., family = quasipoisson) %>%
     summary()  %>%
@@ -1694,14 +1689,13 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
   
   ## tests
   ##as pos but for number of tests, algo diagnostic tests
-  tes <- filter(tests, testType == "Molecular+Antigens" & 
-                  date %in% the_dates) %>%
+  tes <- filter(tests, testType == type & date %in% the_dates) %>%
     arrange(desc(date))
   
   phi <- tests %>% filter(date >= make_date(2020, 7, 1) & 
                             date <= make_date(2020, 11, 2) & ## avoid elections, thanksgiving and xmas
                             date <= last_day &
-                            testType == "Molecular+Antigens") %>%
+                            testType == type) %>%
     mutate(wd = factor(wday(date)), week = factor(round_date(date, "week"))) %>%
     glm(people_total_week ~ wd + week, data = ., family = quasipoisson) %>%
     summary()  %>%
@@ -1886,11 +1880,11 @@ compute_summary <- function(tests, hosp_mort, day = last_complete_day, alpha = t
     
   vac <- slice(vac, -1)
   
-  meta <- c("< 3.0%", "< 2.0%",  "< 30",  "> 4,500", "< 300", "< 1", "> 70%")
+  meta <- c("< 3.0%", "< 3.0%",  "< 30",  "", "< 300", "< 1", "> 70%")
   
   ## make the table
   tab <- tibble(metrica = c("Tasa de positividad (pruebas)", 
-                            "Tasa de positividad (casos)",
+                            "Tasa de positividad",
                             "Casos nuevos por día", 
                             "Pruebas por día", 
                             "Hospitalizaciones",
