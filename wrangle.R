@@ -378,18 +378,19 @@ url <- "https://biostatistics.salud.pr.gov/catalogs/01949661-0d28-7b96-8e27-6237
 hosp_mort <- try({
   fread(httr::content(httr::GET(httr::GET(url)$url))$url) |>
   rename(FE_REPORTE = Date,
-           CAMAS_ADULTOS_TOTAL = TotalAdultHospitalInpatientBeds,
-           CAMAS_ADULTOS_COVID = TotalAdultHospitalInpatientBedsOccupiedCovid19,
-           CAMAS_ICU_TOTAL = TotalStaffedAdultIcuBeds,
-           CAMAS_ICU_OCC = TotalStaffedAdultIcuBedsOccupied,
-           CAMAS_ICU_COVID = TotalStaffedAdultIcuBedsOccupiedCovid19,
-           CAMAS_PED_TOTAL = TotalPediatricInpatientBeds,
-           CAMAS_PED_OCC =TotalPediatricInpatientBedsOccupied,
-           CAMAS_PED_COVID = TotalPediatricInpatientBedsOccupiedCovid19,
-           CAMAS_PICU_TOTAL = TotalStaffedPediatricIcuBeds,
-           CAMAS_PICU_OCC = TotalStaffedPediatricIcuBedsOccupied,
-           CAMAS_PICU_COVID = TotalStaffedPediatricIcuBedsOccupiedCovid19) |>
-    mutate(CAMAS_ICU_DISP = 614 - CAMAS_ICU_OCC) |>  ##614 is temporary fix
+         CAMAS_ADULTOS_TOTAL = TotalAdultHospitalInpatientBeds,
+         CAMAS_ADULTOS_OCC = TotalAdultHospitalInpatientBedsOccupied,
+         CAMAS_ADULTOS_COVID = TotalAdultHospitalInpatientBedsOccupiedCovid19,
+         CAMAS_ICU_TOTAL = TotalStaffedAdultIcuBeds,
+         CAMAS_ICU_OCC = TotalStaffedAdultIcuBedsOccupied,
+         CAMAS_ICU_COVID = TotalStaffedAdultIcuBedsOccupiedCovid19,
+         CAMAS_PED_TOTAL = TotalPediatricInpatientBeds,
+         CAMAS_PED_OCC = TotalPediatricInpatientBedsOccupied,
+         CAMAS_PED_COVID = TotalPediatricInpatientBedsOccupiedCovid19,
+         CAMAS_PICU_TOTAL = TotalStaffedPediatricIcuBeds,
+         CAMAS_PICU_OCC = TotalStaffedPediatricIcuBedsOccupied,
+         CAMAS_PICU_COVID = TotalStaffedPediatricIcuBedsOccupiedCovid19) |>
+    mutate(CAMAS_ICU_DISP = CAMAS_ICU_TOTAL - CAMAS_ICU_OCC) |>  
     mutate(date = mdy(FE_REPORTE)) |> 
     full_join(old_hosp_mort, by = "date") |>
     arrange(date) |>
